@@ -1,11 +1,18 @@
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 void tokenizeUserInput(char** args, char* line);
 void freeArgs(char** args);
 
 int main(int argc, char** argv) {
+    pid_t pid;
+    int status;
+
     char* userInput = (char*)malloc(100 * sizeof(char));
     char** commands;
 
@@ -25,9 +32,26 @@ int main(int argc, char** argv) {
 
         fgets(userInput, 100, stdin);
         tokenizeUserInput(commands, userInput);
+        userInput[strcspn(userInput, "\n")] = 0;        
+        
+        if(0 != strcmp(userInput, "quit")){
+            if ((pid = fork()) < 0) {
+                fprintf(stderr, "Fork failure: %s", strerror(errno));
+                exit(1);
+            }
+            else if (pid == 0) {
+                if (execvp(userInput, &userInput) < 0) {
+                    perror("exec failed");
+                    exit(1);
+                }
+            }
+            else {
+                wait(&status);
+            }
+        }
     }
 
-
+    
     free(userInput);
     return 0;
 }
@@ -60,7 +84,7 @@ void tokenizeUserInput(char** args, char* line) {
         token = strtok(NULL, " ");
     }
 
-
+    // line[strcspn(line, "\n")] = 0;
 }
 
 // WIP
