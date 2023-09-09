@@ -5,16 +5,20 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <time.h>
+#include <sys/resource.h>
 
-void tokenizeUserInput(char** args, char* line);
+void tokenizeUserInput(char*** args, char* line);
 void freeArgs(char** args);
 
 int main(int argc, char** argv) {
     pid_t pid;
     int status;
 
+    struct rusage CPUStat;
+
     char* userInput = (char*)malloc(100 * sizeof(char));
-    char** commands;
+    char** commands = (char**)malloc(10 * sizeof(char*));
 
 
     printf(" __   __  _     _  __   __    _______  __   __  _______  ___      ___        __   __  _______        ____ \n");
@@ -31,27 +35,32 @@ int main(int argc, char** argv) {
         printf("\n> ");
 
         fgets(userInput, 100, stdin);
-        tokenizeUserInput(commands, userInput);
-        userInput[strcspn(userInput, "\n")] = 0;        
-        
-        if(0 != strcmp(userInput, "quit")){
+        userInput[strcspn(userInput, "\n")] = 0;
+        tokenizeUserInput(&commands, userInput);
+
+        printf("AAAA %s\n", commands[0]);
+
+        if (0 != strcmp(userInput, "quit")) {
             if ((pid = fork()) < 0) {
                 fprintf(stderr, "Fork failure: %s", strerror(errno));
                 exit(1);
             }
             else if (pid == 0) {
-                if (execvp(userInput, &userInput) < 0) {
-                    perror("exec failed");
+                if (execvp(*commands, commands) < 0) {
+                    perror("\e[0;31mexec failed\e[0m");
                     exit(1);
                 }
             }
             else {
                 wait(&status);
+                getrusage(RUSAGE_CHILDREN, &CPUStat);
+                printf("User CPU Time Used: %ld (μs)\n", CPUStat.ru_stime.tv_usec);
+                printf("# of involuntary context switches: %ld\n", CPUStat.ru_nivcsw);
             }
         }
     }
 
-    
+
     free(userInput);
     return 0;
 }
@@ -64,26 +73,25 @@ int main(int argc, char** argv) {
  * @param args where tokenized outputs are stored. ARGS WILL BE DESTROYED
  */
 
-void tokenizeUserInput(char** args, char* line) {
+void tokenizeUserInput(char*** args, char* line) {
     char* token = (char*)malloc(100 * sizeof(char));
-    args = (char**)malloc(10 * sizeof(char*));
+    args[0] = (char**)malloc(10 * sizeof(char*));
     token = strtok(line, " ");
 
     int counter = 0;
     while (token != NULL) {
-
         // reallocates memory if necessary
         if (counter > 10) {
             args = realloc(args, counter * sizeof(char*));
         }
         // allocates memory for new command and copies to array
-        args[counter] = (char*)malloc(10 * sizeof(char));
-        memcpy(args[counter], token, strlen(token));
+        *args[counter] = (char*)malloc(10 * sizeof(char));
+        memcpy(*args[counter], token, strlen(token));
 
         // Grabs next token
         token = strtok(NULL, " ");
+        counter++;
     }
-
     // line[strcspn(line, "\n")] = 0;
 }
 
