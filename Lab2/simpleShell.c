@@ -8,48 +8,47 @@
 #include <time.h>
 #include <sys/resource.h>
 
-void tokenizeUserInput(char*** args, char* line);
-void freeArgs(char** args);
+typedef struct {
+    char*** commands;
+    int numCommands;
+} command_t;
+
+void tokenizeUserInput(command_t* commands, char* line);
+void freeCommands(command_t* commands);
+void buildCommands(command_t* commands);
+int findNumCommands(char* line);
 
 int main(int argc, char** argv) {
     pid_t pid;
     int status;
-
+    command_t commands;
     struct rusage CPUStat;
 
-    char* userInput = (char*)malloc(100 * sizeof(char));
-    char** commands = (char**)malloc(10 * sizeof(char*));
+    const char* quitString = "quit";
+    char* userInput = (char*)calloc(100, sizeof(char));
+    buildCommands(&commands);
 
-
-    printf(" __   __  _     _  __   __    _______  __   __  _______  ___      ___        __   __  _______        ____ \n");
-    printf("|  | |  || | _ | ||  | |  |  |       ||  | |  ||       ||   |    |   |      |  | |  ||  _    |      |    |\n");
-    printf("|  | |  || || || ||  | |  |  |  _____||  |_|  ||    ___||   |    |   |      |  |_|  || | |   |       |   |\n");
-    printf("|  |_|  ||       ||  |_|  |  | |_____ |       ||   |___ |   |    |   |      |       || | |   |       |   |\n");
-    printf("|       ||       ||       |  |_____  ||       ||    ___||   |___ |   |___   |       || |_|   | ___   |   |\n");
-    printf("|       ||   _   ||       |   _____| ||   _   ||   |___ |       ||       |   |     | |       ||   |  |   |\n");
-    printf("|_______||__| |__||_______|  |_______||__| |__||_______||_______||_______|    |___|  |_______||___|  |___|\n");
-    printf("\n\n\n\n\n\n\n\n\n");
-
-
-    while (0 != strcmp(userInput, "quit")) {
+    printf("Welcome to the simple shell. Type 'quit' to exit.\n");
+    while (0 != strcmp(userInput, quitString)) {
         printf("\n> ");
 
+        // Reading stdin and tokenizing it
         fgets(userInput, 100, stdin);
         userInput[strcspn(userInput, "\n")] = 0;
         tokenizeUserInput(&commands, userInput);
 
-        printf("AAAA %s\n", commands[0]);
-
-        if (0 != strcmp(userInput, "quit")) {
+        // Using the tokenized stsring to perform commands
+        if (0 != strcmp(userInput, quitString)) {
             if ((pid = fork()) < 0) {
                 fprintf(stderr, "Fork failure: %s", strerror(errno));
                 exit(1);
             }
             else if (pid == 0) {
-                if (execvp(*commands, commands) < 0) {
+                if (execvp(commands.commands[0][0], commands.commands[0]) < 0) {
                     perror("\e[0;31mexec failed\e[0m");
                     exit(1);
                 }
+                // printf("\n");
             }
             else {
                 wait(&status);
@@ -62,6 +61,7 @@ int main(int argc, char** argv) {
 
 
     free(userInput);
+    freeCommands(&commands);
     return 0;
 }
 
@@ -73,36 +73,56 @@ int main(int argc, char** argv) {
  * @param args where tokenized outputs are stored. ARGS WILL BE DESTROYED
  */
 
-void tokenizeUserInput(char*** args, char* line) {
-    char* token = (char*)malloc(100 * sizeof(char));
-    args[0] = (char**)malloc(10 * sizeof(char*));
-    token = strtok(line, " ");
 
+void tokenizeUserInput(command_t* commands, char* line) {
+    // Reset commands
+    freeCommands(commands);
+    buildCommands(commands);
+
+    char* token = strtok_r(line, ";", &line);
     int counter = 0;
-    while (token != NULL) {
-        // reallocates memory if necessary
-        if (counter > 10) {
-            args = realloc(args, counter * sizeof(char*));
-        }
-        // allocates memory for new command and copies to array
-        *args[counter] = (char*)malloc(10 * sizeof(char));
-        memcpy(*args[counter], token, strlen(token));
 
-        // Grabs next token
-        token = strtok(NULL, " ");
+    while (token != NULL) {
+        // Tokenize each command into individual arguments
+        char* tokenCopy = strdup(token);
+        char* argToken = strtok_r(tokenCopy, " ", &tokenCopy);
+        int argsCounter = 0;
+
+        // if there are arguments -> the -a in 'ls -a'
+        if (argToken != NULL) {
+            while (argToken != NULL) {
+                commands->commands[counter] = realloc(commands->commands[counter], (argsCounter + 1) * sizeof(char*));
+                commands->commands[counter][argsCounter] = strdup(argToken);
+                argsCounter++;
+                argToken = strtok_r(NULL, " ", &tokenCopy);
+            }
+        }
+
+        // This allows multiple args to work for some reason?
+        commands->commands[counter][argsCounter] = NULL;
+        commands->numCommands++;
+
+        token = strtok_r(NULL, ";", &line);
         counter++;
     }
-    // line[strcspn(line, "\n")] = 0;
+
 }
 
-// WIP
-void freeArgs(char** args) {
-    int argsLength = sizeof(args) / 8;
-    printf("Length %d\n", argsLength);
+void freeCommands(command_t* commands) {
+    if (commands != NULL) {
+        // free all commands within the struct
+        for (int i = 0; i < commands->numCommands; i++) {
+            free(commands->commands[i]);
+        }
 
-    for (int i = 0; i < argsLength; i++) {
-        free(args[i]);
+        // free the pointer to the string array
+        if (commands->numCommands)
+            free(commands->commands);
     }
-    free(args);
 
+}
+
+void buildCommands(command_t* commands) {
+    commands->commands = (char***)calloc(1, sizeof(char**));
+    commands->numCommands = 0;
 }
