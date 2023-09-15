@@ -5,9 +5,9 @@
 #include <unistd.h>
 #include <wait.h>
 
-void sigHandlerUsr1(int);
-void sigHandlerUsr2(int);
-void sigHandlerInt(int);
+void sigHandlerSIGUSR1(int);
+void sigHandlerSIGUSR2(int);
+void sigHandlerINT(int);
 
 int main(int argc, char** argv){
     pid_t pid;
@@ -26,7 +26,7 @@ int main(int argc, char** argv){
 
     }else{
         while(1){
-            signal(SIGUSR1, sigHandlerUsr1); signal(SIGUSR2, sigHandlerUsr2); signal(SIGINT, sigHandlerInt);
+            signal(SIGUSR1, sigHandlerSIGUSR1); signal(SIGUSR2, sigHandlerSIGUSR2); signal(SIGINT, sigHandlerINT);
             pause();
         }
     }
@@ -34,15 +34,15 @@ int main(int argc, char** argv){
     return 0;
 }
 
-void sigHandlerUsr1(int sigNum){
+void sigHandlerSIGUSR1(int sigNum){
     printf("received a SIGUSR1 signal\n");
 }
 
-void sigHandlerUsr2(int sigNum){
+void sigHandlerSIGUSR2(int sigNum){
     printf("received a SIGUSR2 signal\n");
 }
 
-void sigHandlerInt(int sigNum){
+void sigHandlerINT(int sigNum){
     printf(" received. That's it, I'm shutting you down...\n");
     exit(0);
 }
