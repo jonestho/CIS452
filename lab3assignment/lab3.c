@@ -40,6 +40,7 @@ int main(int argc, char** argv) {
             signal(SIGUSR1, sigHandlerSIGUSR1);
             signal(SIGUSR2, sigHandlerSIGUSR2);
             signal(SIGINT, sigHandlerINT);
+            
             pause();
         }
     }
@@ -48,12 +49,10 @@ int main(int argc, char** argv) {
 }
 
 void sigHandlerSIGUSR1(int sigNum) {
-    //signal(SIGUSR1, sigHandlerSIGUSR1);
     printf("received a SIGUSR1 signal\n");
 }
 
 void sigHandlerSIGUSR2(int sigNum) {
-    //signal(SIGUSR2, sigHandlerSIGUSR2);
     printf("received a SIGUSR2 signal\n");
 }
 
