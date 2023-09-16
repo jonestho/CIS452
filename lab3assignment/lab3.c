@@ -30,6 +30,8 @@ int main(int argc, char** argv) {
                 kill(getppid(), SIGUSR2);
 
             }
+
+            sleep(1);
         }
 
     }
@@ -46,12 +48,12 @@ int main(int argc, char** argv) {
 }
 
 void sigHandlerSIGUSR1(int sigNum) {
-    signal(SIGUSR1, sigHandlerSIGUSR1);
+    //signal(SIGUSR1, sigHandlerSIGUSR1);
     printf("received a SIGUSR1 signal\n");
 }
 
 void sigHandlerSIGUSR2(int sigNum) {
-    signal(SIGUSR2, sigHandlerSIGUSR2);
+    //signal(SIGUSR2, sigHandlerSIGUSR2);
     printf("received a SIGUSR2 signal\n");
 }
 
