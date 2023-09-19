@@ -1,60 +1,61 @@
 #include "main.h"
+#include <sys/types.h>
 
 
 typedef struct {
-    char* message;
+    char message[500];
     int receiver;
 } apple;
 
 
 int main(int argc, char** argv) {
+    pid_t pid;
+    apple theApple;
+   
+    int childNum;
+    
+    printf("Enter a number of children: ");
+    scanf("%d", &childNum);
 
-    int fd[3], pid, outputLength = 50;
-    int pipeCreationsResult = pipe(fd);
+    int children[childNum];
+    int fdArray[3];
 
-    char output[50] = "Schmeeble";
-    char input[50];
-
-    if (pipeCreationsResult < 0) {
-        perror("Failed pipe creation\n");
+    int pipeResult = pipe(fdArray);
+    if(pipeResult < 0){
+        printf("Failed to create pipe\n");
         exit(1);
     }
 
-    pid = fork();
+    int i = 0;
+    int childPID;
 
-    // spawning the circle
-    int processCounter = 2; // set to 2 because the child needs to spawn the fork, so 2 children already exist
-    while (processCounter < 3 && pid == 0) {
+    pid = getpid();
+
+    while (i < childNum && pid > 0) {
         if ((pid = fork()) < 0) {
-            printf("Failed Child creation on child: %d\n", processCounter);
+            printf("Failed creating child #%d\n", childNum + 1);
             exit(1);
+        }else if(pid == 0){
+            int toSend = getpid();
+            write(fdArray[1], &toSend, sizeof(toSend));
+        }else{
+            read(fdArray[0], &childPID, sizeof(int));
+            children[i] = childPID;
+
+            i++;
         }
-
-        processCounter++;
     }
 
-    // if child
-    if (pid == 0) {
-        close(fd[1]);
+    // This code runs from the parent process
+    if(pid > 0){
+        printf("Children spawned successfully.\n\n");
 
-        read(fd[0], input, outputLength);
-        printf("Child received: [%s] from parent\n", input);
+        printf("Enter a message to send: ");
+        scanf("%s", theApple.message);
 
-        //free(output);
+        printf("Which child would you like to send this to? (0 to %d): ", childNum - 1);
+        scanf("%d", &theApple.receiver);
     }
-    else { // parent
-        close(fd[0]);
-
-        write(fd[1], output, outputLength);
-        printf("Parent sent: [%s] \n", output);
-        close(fd[1]);
-
-        //free(input);
-    }
-
-
 
     return 0;
-
 }
-
