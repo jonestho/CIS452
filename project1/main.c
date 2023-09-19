@@ -18,9 +18,21 @@ int main(int argc, char** argv) {
     scanf("%d", &childNum);
 
     int children[childNum];
-    int fdArray[3];
+    int fileDirectors[childNum + 1][3];
+    int pipeResult;
 
-    int pipeResult = pipe(fdArray);
+    for(int i=0; i <= childNum; i++){
+        pipeResult = pipe(fileDirectors[i]);
+
+        if(pipeResult < 0){
+            printf("Failed to create pipe\n");
+            exit(1);
+        }
+    }
+
+    int fdArray[3];
+    pipeResult = pipe(fdArray);
+
     if(pipeResult < 0){
         printf("Failed to create pipe\n");
         exit(1);
@@ -46,7 +58,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    // This code runs from the parent process
     if(pid > 0){
         printf("Children spawned successfully.\n\n");
 
@@ -55,6 +66,8 @@ int main(int argc, char** argv) {
 
         printf("Which child would you like to send this to? (0 to %d): ", childNum - 1);
         scanf("%d", &theApple.receiver);
+
+        
     }
 
     return 0;
