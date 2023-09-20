@@ -5,8 +5,10 @@
 typedef struct {
     char message[500];
     int receiver;
+    
+    int readPipe;
+    int writePipe;
 } apple;
-
 
 int main(int argc, char** argv) {
     pid_t pid;
@@ -19,6 +21,11 @@ int main(int argc, char** argv) {
 
     int children[childNum];
     int fileDirectors[childNum + 1][3];
+
+    theApple.readPipe = childNum;
+    theApple.writePipe = 0;
+
+
     int pipeResult;
 
     for(int i=0; i <= childNum; i++){
@@ -41,6 +48,9 @@ int main(int argc, char** argv) {
     int i = 0;
     int childPID;
 
+    // REMOVE WHEN READY
+    printf("Parent PID: %d, read(%d), write(%d)\n", getpid(), theApple.readPipe, theApple.writePipe);
+
     pid = getpid();
 
     while (i < childNum && pid > 0) {
@@ -49,6 +59,11 @@ int main(int argc, char** argv) {
             exit(1);
         }else if(pid == 0){
             int toSend = getpid();
+            theApple.readPipe = i;
+            theApple.writePipe = i + 1;
+
+            // REMOVE WHEN READY
+            printf("Child #%d: %d, read(%d) write(%d)\n", i + 1, getpid(), theApple.readPipe, theApple.writePipe);
             write(fdArray[1], &toSend, sizeof(toSend));
         }else{
             read(fdArray[0], &childPID, sizeof(int));
@@ -60,14 +75,13 @@ int main(int argc, char** argv) {
 
     if(pid > 0){
         printf("Children spawned successfully.\n\n");
+        close(fdArray[0]); close(fdArray[1]);
 
         printf("Enter a message to send: ");
         scanf("%s", theApple.message);
 
         printf("Which child would you like to send this to? (0 to %d): ", childNum - 1);
         scanf("%d", &theApple.receiver);
-
-        
     }
 
     return 0;
