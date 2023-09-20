@@ -21,4 +21,6 @@ typedef struct {
 
 void getUserInput(int* numChildren, char* message, int* dest);
 Apple appleFactory(int ID, int receiver, int readPipe, int writePipe, char* message);
-void handleSignal(int sig);
+void endProgram(int sig);
+void endChild(int sig);
+void exitProgram(int sig);

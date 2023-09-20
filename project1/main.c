@@ -2,6 +2,7 @@
 
 
 int main(int argc, char** argv) {
+    signal(SIGUSR1, endProgram);
     pid_t pid;
     int childNum, pipeResult, destination;
     char* myMessage = (char*)malloc(sizeof(char) * 500);
@@ -32,7 +33,7 @@ int main(int argc, char** argv) {
             exit(1);
         }
         else if (pid == 0) {
-            signal(SIGUSR1, handleSignal);
+            signal(SIGUSR1, endChild);
             theApple = appleFactory(i, destination, i, i + 1, "");
 
             if (i == childNum - 1) {
@@ -64,11 +65,10 @@ int main(int argc, char** argv) {
                 close(myPipes[theApple.readPipe][0]);
 
                 if (theApple.receiver == theApple.readPipe) {
-                    printf("PID: [%d] Child: [%d] received \"%s\"", getpid(), theApple.ID, theApple.message);
-                    kill(getpid(), SIGUSR1);
+                    printf("PID: [%d] Child: [%d] received \"%s\"\n", getpid(), theApple.ID, theApple.message);
+                    raise(SIGUSR1);
                 }
             }
-            signal(SIGUSR1, handleSignal);
         }
         else {
             if (write(myPipes[theApple.writePipe][1], theApple.message, 500) < 0) {
@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
             }
             close(myPipes[theApple.writePipe][1]);
 
-            printf("PID: %d | Apple [%d] wrote to Apple: %d\n", getpid(), theApple.ID, theApple.writePipe);
+            printf("PID: [%d] | Apple [%d] wrote to Apple: %d\n", getpid(), theApple.ID, theApple.writePipe);
             theApple.sent = 1;
         }
     }
@@ -109,9 +109,21 @@ Apple appleFactory(int ID, int receiver, int readPipe, int writePipe, char* mess
     return myApple;
 }
 
-void handleSignal(int sig) {
-    printf("PID: [%d] | Apple received signal. Ending process\n", getpid());
-    // exit(0);
+void endProgram(int sig) {
+    printf("PID: [%d] | Parent received signal. Ending processes\n", getpid());
     int process_group_id = getpgrp();
-    kill(-process_group_id, SIGKILL);
+    kill(-process_group_id, SIGUSR1);
+    signal(SIGUSR1, exitProgram);
+}
+
+void endChild(int sig) {
+    printf("PID: [%d] | Child received signal. Ending process\n", getpid());
+    kill(getppid(), SIGUSR1);
+    exit(0);
+}
+
+void exitProgram(int sig) {
+    printf("PID: [%d] | Parent received final signal. Ending processes\n", getpid());
+    sleep(1);
+    exit(0);
 }
