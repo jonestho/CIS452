@@ -2,8 +2,8 @@
 
 
 int main(int argc, char** argv) {
-    signal(SIGUSR1, endProgram);
-    signal(SIGINT, endProgram);
+    signal(SIGUSR1, endProgram); // Signal for ending program
+    signal(SIGINT, endProgram); // Signal for ^C ending program
 
     pid_t pid;
     int childNum, pipeResult, destination, badApple;
@@ -11,8 +11,8 @@ int main(int argc, char** argv) {
     Apple theApple;
     getUserInput(&childNum, myMessage, &destination, &badApple);
 
+    // Creating and instantiating pipes
     int myPipes[childNum][2];
-
     for (int i = 0; i < childNum; i++) {
         if (pipe(myPipes[i]) < 0) {
             perror("Failed to make pipes");
@@ -20,15 +20,9 @@ int main(int argc, char** argv) {
         }
     }
 
-    int i = 0;
-    int childPID;
 
-    // REMOVE WHEN READY
-    // printf("Parent PID: %d, read(%d), write(%d)\n", getpid(), theApple.readPipe, theApple.writePipe);
-
-    pid = getpid();
-    i = 1;
     // Loop for creating children and apples
+    int i = 1;
     while (i < childNum && pid > 0) {
         if ((pid = fork()) < 0) {
             printf("Failed creating child #%d\n", childNum + 1);
@@ -41,13 +35,13 @@ int main(int argc, char** argv) {
             if (i == childNum - 1) {
                 theApple.writePipe = 0;
             }
-
             printf("PID: [%d] | Child #%d, read(%d) write(%d)\n", getpid(), theApple.readPipe, theApple.readPipe, theApple.writePipe);
             break;
         }
         i++;
     }
 
+    // Creating parent apple
     if (pid > 0) {
         theApple = appleFactory(0, destination, 0, 1, myMessage, badApple);
     }
@@ -57,14 +51,16 @@ int main(int argc, char** argv) {
 
     // Loop for sending messages
     while (1) {
-        if (!strcmp(theApple.message, "")) {
+        if (!strcmp(theApple.message, "")) { // if empty
             read(myPipes[theApple.readPipe][0], theApple.message, 500);
 
+            // If the message is NOT empty, then we can close the pipe and print the message
             if (strcmp(theApple.message, "")) {
                 printf("PID: [%d] | Node: [%d] received \"%s\"\n", getpid(), theApple.ID, theApple.message);
                 close(myPipes[theApple.readPipe][0]);
             }
 
+            // Check for bad apple
             if (theApple.readPipe == theApple.badApple) {
                 for (int i = 0; i < strlen(theApple.message); i++) {
                     if (rand() % 2 == 0)
@@ -72,8 +68,9 @@ int main(int argc, char** argv) {
                 }
             }
 
+            // Check if message is intended for this node
             if (theApple.receiver == theApple.readPipe) {
-                // printf("PID: [%d] Node: [%d] received \"%s\"", getpid(), theApple.ID, theApple.message);
+                printf("\033[32mPID: [%d] Message has reached intended node: [%d]. Received \"%s\"\033[00m\n", getpid(), theApple.ID, theApple.message);
                 raise(SIGUSR1);
             }
         }
@@ -128,6 +125,7 @@ Apple appleFactory(int ID, int receiver, int readPipe, int writePipe, char* mess
 
     return myApple;
 }
+
 
 void endProgram(int sig) {
     printf("PID: [%d] | Parent received signal. Ending processes\n", getpid());
