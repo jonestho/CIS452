@@ -14,13 +14,13 @@ typedef struct {
     int readPipe;
     int writePipe;
     char message[500];
-    int sent;
+    int badApple;
 } Apple;
 
 
 
-void getUserInput(int* numChildren, char* message, int* dest);
-Apple appleFactory(int ID, int receiver, int readPipe, int writePipe, char* message);
+void getUserInput(int* numChildren, char* message, int* dest, int* badApple);
+Apple appleFactory(int ID, int receiver, int readPipe, int writePipe, char* message, int badApple);
 void endProgram(int sig);
 void endChild(int sig);
 void exitProgram(int sig);

@@ -3,11 +3,13 @@
 
 int main(int argc, char** argv) {
     signal(SIGUSR1, endProgram);
+    signal(SIGINT, endProgram);
+
     pid_t pid;
-    int childNum, pipeResult, destination;
+    int childNum, pipeResult, destination, badApple;
     char* myMessage = (char*)malloc(sizeof(char) * 500);
     Apple theApple;
-    getUserInput(&childNum, myMessage, &destination);
+    getUserInput(&childNum, myMessage, &destination, &badApple);
 
     int myPipes[childNum][2];
 
@@ -34,7 +36,7 @@ int main(int argc, char** argv) {
         }
         else if (pid == 0) {
             signal(SIGUSR1, endChild);
-            theApple = appleFactory(i, destination, i, i + 1, "");
+            theApple = appleFactory(i, destination, i, i + 1, "", badApple);
 
             if (i == childNum - 1) {
                 theApple.writePipe = 0;
@@ -48,26 +50,31 @@ int main(int argc, char** argv) {
     }
 
     if (pid > 0) {
-        theApple = appleFactory(0, destination, 0, 1, myMessage);
-        // printf("Parent #%d: %d, read(%d) write(%d)\n", theApple.ID, getpid(), theApple.readPipe, theApple.writePipe);
+        theApple = appleFactory(0, destination, 0, 1, myMessage, badApple);
     }
 
-    // printf("child: %d, reads from %d writes to %d\n", theApple.ID, theApple.readPipe, theApple.writePipe);
 
     struct stat pipeStat;
 
     // Loop for sending messages
     while (1) {
-        if (!strcmp(theApple.message, "") || theApple.sent == 1) {
+        if (!strcmp(theApple.message, "")) {
             read(myPipes[theApple.readPipe][0], theApple.message, 500);
 
             if (strcmp(theApple.message, "")) {
                 close(myPipes[theApple.readPipe][0]);
+            }
 
-                if (theApple.receiver == theApple.readPipe) {
-                    printf("PID: [%d] Child: [%d] received \"%s\"\n", getpid(), theApple.ID, theApple.message);
-                    raise(SIGUSR1);
+            if (theApple.readPipe == theApple.badApple) {
+                for (int i = 0; i < strlen(theApple.message); i++) {
+                    if (rand() % 2 == 0)
+                        theApple.message[i] = (int)theApple.message[i] ^ rand() % 256;
                 }
+            }
+
+            if (theApple.receiver == theApple.readPipe) {
+                printf("PID: [%d] Node: [%d] received \"%s\"", getpid(), theApple.ID, theApple.message);
+                raise(SIGUSR1);
             }
         }
         else {
@@ -75,28 +82,40 @@ int main(int argc, char** argv) {
                 perror("FAILED TO SEND");
             }
             close(myPipes[theApple.writePipe][1]);
+            strcpy(theApple.message, "\0");
 
             printf("PID: [%d] | Apple [%d] wrote to Apple: %d\n", getpid(), theApple.ID, theApple.writePipe);
-            theApple.sent = 1;
         }
     }
+
 
     free(myMessage);
     return 0;
 }
 
-void getUserInput(int* numChildren, char* message, int* dest) {
-    printf("Enter a number of children: \n");
-    scanf("%d", numChildren);
+void getUserInput(int* numChildren, char* userInput, int* dest, int* badApple) {
+    char* temp = (char*)malloc(sizeof(char) * 500);
 
-    printf("Enter a message to send: \n");
-    scanf("%s", message);
+    printf("Enter a number of children: ");
+    fgets(temp, 500, stdin);
+    *numChildren = atoi(temp);
 
-    printf("Which child would you like to send this to? (0 to %d): \n", *numChildren - 1);
-    scanf("%d", dest);
+    printf("Enter a message to send: ");
+    fgets(userInput, 500, stdin);
+
+
+    printf("Which child would you like to send this to? (0 to %d): ", *numChildren - 1);
+    fgets(temp, 500, stdin);
+    *dest = atoi(temp);
+
+    printf("Which child would you like to be the bad apple? -1 for none or (0 to %d): ", *numChildren - 1);
+    fgets(temp, 500, stdin);
+    *badApple = atoi(temp);
+
+    free(temp);
 }
 
-Apple appleFactory(int ID, int receiver, int readPipe, int writePipe, char* message) {
+Apple appleFactory(int ID, int receiver, int readPipe, int writePipe, char* message, int badApple) {
 
     Apple myApple;
     myApple.ID = ID;
@@ -104,7 +123,7 @@ Apple appleFactory(int ID, int receiver, int readPipe, int writePipe, char* mess
     myApple.readPipe = readPipe;
     myApple.writePipe = writePipe;
     strcpy(myApple.message, message);
-    myApple.sent = 0;
+    myApple.badApple = badApple;
 
     return myApple;
 }
@@ -123,7 +142,7 @@ void endChild(int sig) {
 }
 
 void exitProgram(int sig) {
-    printf("PID: [%d] | Parent received final signal. Ending processes\n", getpid());
+    printf("PID: [%d] | Parent received final signal. Exiting program\n", getpid());
     sleep(1);
     exit(0);
 }
