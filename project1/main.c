@@ -42,8 +42,7 @@ int main(int argc, char** argv) {
                 theApple.writePipe = 0;
             }
 
-            // REMOVE WHEN READY
-            // printf("Child #%d: %d, read(%d) write(%d)\n", theApple.readPipe, getpid(), theApple.readPipe, theApple.writePipe);
+            printf("PID: [%d] | Child #%d, read(%d) write(%d)\n", getpid(), theApple.readPipe, theApple.readPipe, theApple.writePipe);
             break;
         }
         i++;
@@ -62,6 +61,7 @@ int main(int argc, char** argv) {
             read(myPipes[theApple.readPipe][0], theApple.message, 500);
 
             if (strcmp(theApple.message, "")) {
+                printf("PID: [%d] | Node: [%d] received \"%s\"\n", getpid(), theApple.ID, theApple.message);
                 close(myPipes[theApple.readPipe][0]);
             }
 
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
             }
 
             if (theApple.receiver == theApple.readPipe) {
-                printf("PID: [%d] Node: [%d] received \"%s\"", getpid(), theApple.ID, theApple.message);
+                // printf("PID: [%d] Node: [%d] received \"%s\"", getpid(), theApple.ID, theApple.message);
                 raise(SIGUSR1);
             }
         }
@@ -102,6 +102,7 @@ void getUserInput(int* numChildren, char* userInput, int* dest, int* badApple) {
 
     printf("Enter a message to send: ");
     fgets(userInput, 500, stdin);
+    userInput[strcspn(userInput, "\n")] = 0;
 
 
     printf("Which child would you like to send this to? (0 to %d): ", *numChildren - 1);
