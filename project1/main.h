@@ -6,21 +6,10 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
-
-typedef struct {
-    int ID;
-    int receiver;
-    int readPipe;
-    int writePipe;
-    char message[500];
-    int badApple;
-} Apple;
-
-
-
-void getUserInput(int* numChildren, char* message, int* dest, int* badApple);
-Apple appleFactory(int ID, int receiver, int readPipe, int writePipe, char* message, int badApple);
-void endProgram(int sig);
-void endChild(int sig);
+void getUserInput(int* numChildren, char* message, int* destination, int* badApple);
+void sendApples(int childNum, char* myMessage, int destination, int badApple);
+void endChildren(int sig);
 void exitProgram(int sig);
