@@ -69,15 +69,19 @@ void *doDispatch(void *arg)
 
 void *doWork(void *arg)
 {
+    char* temp;
+    temp = (char*)malloc(500 * sizeof(char));
+    strcpy(temp, arg);
     if ((double)rand() / (double)RAND_MAX >= 0.2)
         sleep(1);
     else
         sleep(rand() % 3 + 7);
 
-    printf("\nFile \"%s\" found. Terminating thread\n", arg);
+    printf("\nFile \"%s\" found. Terminating thread\n", temp);
     
     filesAccessed++;
     workersRunning--;
+    free(temp);
 }
 
 void signalHandler(int signal)
