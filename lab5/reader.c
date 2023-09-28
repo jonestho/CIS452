@@ -9,7 +9,8 @@ int main(int argc, char** argv) {
                 key_t ftok(const char *pathname, int proj_id);
                 https://man7.org/linux/man-pages/man3/ftok.3.html
     
-
+        the read portion for each reader should be pointing to
+        shared_mem_start + 1 + ID
     */
 
 
