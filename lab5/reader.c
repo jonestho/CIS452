@@ -11,6 +11,8 @@ int main(int argc, char** argv) {
     
         the read portion for each reader should be pointing to
         shared_mem_start + 1 + ID
+
+        readFlag = (uint8_t)shmID + 1 + (uint8_t)ID;
     */
 
 
