@@ -25,14 +25,15 @@ char* sharedMemoryPtr;
 
 int main(int argc, char** argv) {
     signal(SIGINT, quitSignalHandler);
-    char* keyPath = ".key";
-    key_t key = ftok(argv[0], 7);
+
+    key_t key = ftok("writer.c", 7);
+
     if (key < 0) {
         perror("Unable to get key\n");
         exit(1);
     }
 
-    uint8_t* sharedMemoryPtr, *readFlag1, *readFlag2;
+    uint8_t *readFlag1, *readFlag2;
     char* stringStart;
     char* userInput = (char*)malloc(sizeof(char) * SM_SIZE - 3);
 
@@ -60,7 +61,7 @@ int main(int argc, char** argv) {
 
     while (1) {
         getUserInput(userInput);
-
+        
         // Write to shared memory
         memcpy(stringStart, userInput, strlen(userInput));
         *sharedMemoryPtr = 1;
@@ -69,6 +70,8 @@ int main(int argc, char** argv) {
 
         *readFlag1 = 0;
         *readFlag2 = 0;
+
+        memset(stringStart, 0, strlen(userInput));
     }
 
     
@@ -105,6 +108,8 @@ void quitSignalHandler(int sig) {
     sleep(1);
     detach();
     removeSegment();
+
+    printf("\n");
     exit(0);
 }
 
