@@ -10,12 +10,11 @@
 
 int main(int argc, char **argv){
     int shmID;
-    int memSize = 2147483000;
+    size_t memSize = 18768826300;
 
     while(1){
         if ((shmID = shmget(IPC_PRIVATE, memSize, IPC_CREAT | S_IRUSR | S_IWUSR)) < 0) {
             perror("Unable to get shared memory\n");
-            printf("Max Memory Size: %d\n", memSize);
             exit(1);
         }
 
@@ -24,8 +23,8 @@ int main(int argc, char **argv){
             exit(1);
         }
 
-        printf("Mem Size: %d\n", memSize);
-        memSize += 500;
+        printf("Mem Size: %ld\n", memSize);
+        memSize += 1;
     }
     
     return 0;
