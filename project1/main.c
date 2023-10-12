@@ -1,4 +1,18 @@
-#include "main.h"
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+void getUserInput(int* numChildren, char* message, int* destination, int* badApple);
+void sendApples(int childNum, char* myMessage, int destination, int badApple);
+void endChildren(int sig);
+void exitProgram(int sig);
 
 pid_t parentPID;
 
@@ -119,7 +133,7 @@ void sendApples(int childNum, char* myMessage, int destination, int badApple) {
                 }
             }
         }
-        else if (readPipe == 0 && hasRead) {
+        else if (readPipe == 0 && hasRead) { // if node 0 has read a message in
             kill(0, SIGQUIT); // https://stackoverflow.com/questions/18433585/kill-all-child-processes-of-a-parent-but-leave-the-parent-alive
             free(apple);
             int childStatus = 0;
@@ -134,17 +148,13 @@ void sendApples(int childNum, char* myMessage, int destination, int badApple) {
                 printf("PID: [%d] | Node: [%d] wrote \"%s\" to Node [%d]\n", getpid(), readPipe, apple, writePipe);
                 strcpy(apple, "/");
             }
-
-
         }
     }
 }
 
 void endChildren(int sig) {
-    // if (parentPID != getpid()) {
-        printf("PID: [%d] | Child received signal. Ending process\n", getpid());
-        exit(0);
-    // }
+    printf("PID: [%d] | Child received signal. Ending process\n", getpid());
+    exit(0);
 }
 
 
