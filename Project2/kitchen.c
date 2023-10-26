@@ -24,12 +24,11 @@ int main(int argc, char **argv)
     numOfBakers = atoi(userInput);
     printf("You have entered %d bakers.\n", numOfBakers);
 
-    int utensilSemID, fridgeSemID, pantrySemID, ovenSemID;
-
-    utensilSemID = createSemaphore(utensilSemID);
-    fridgeSemID = createSemaphore(fridgeSemID);
-    pantrySemID = createSemaphore(pantrySemID);
-    ovenSemID = createSemaphore(ovenSemID);
+    int semIDs[4] = // utensilSemID, fridgeSemID, pantrySemID, ovenSemID
+    semID[0] = createSemaphore(semID[0]); // utensilSemID
+    semID[1] = createSemaphore(semID[1]); // fridgeSemID
+    semID[2] = createSemaphore(semID[2]); // pantrySemID
+    semID[3] = createSemaphore(semID[3]); // ovenSemID
 
     free(userInput);
     return 0;

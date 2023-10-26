@@ -1,7 +1,7 @@
 #include "baker.h"
 // #include <stdio.h>
 
-Baker initBaker(int32_t* sharedMemPointer, int ID, int ramsay) {
+Baker initBaker(int32_t* sharedMemPointer, uint32_t* semArray, int ID, int ramsay) {
     Baker baker;
     baker.sharedMemPointer = sharedMemPointer;
     baker.ramsay = ramsay;
@@ -35,7 +35,7 @@ void* enterPantry(Baker* self) {
 void* enterFridge(Baker* self) {
     self->printStatus(self, "entering fridge");
 
-    
+
 }
 
 
