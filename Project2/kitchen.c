@@ -19,7 +19,6 @@ int main(int argc, char **argv)
     int utensilSemID, pantrySemID, fridgeSemID, ovenSemID; // utensilSemID is for mixers, bowls, and spoons.
 
     key_t keySHM = ftok("kitchen.c", 0);
-    key_t keySEM = ftok("baker.c", 1);
 
     int numOfBakers;
     char* userInput = (char*) malloc(sizeof(char) * 10); 
