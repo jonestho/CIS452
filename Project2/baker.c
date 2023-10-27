@@ -1,25 +1,31 @@
-#include "baker.h"
-// #include <stdio.h>
+#include "kitchen.h"
 
-Baker initBaker(int32_t* sharedMemPointer, uint32_t* semArray, int ID, int ramsay) {
+Baker BakerFactory(int32_t* sharedMemPointer, int ID, int ramsay, Recipe recipe) {
     Baker baker;
-    baker.sharedMemPointer = sharedMemPointer;
-    baker.ramsay = ramsay;
 
+    // baker attributes
+    baker.memPointer = sharedMemPointer;
+    baker.ramsay = ramsay;
+    baker.ID = ID;
+
+    // baker methods
     baker.enterFridge = enterFridge;
     baker.enterPantry = enterPantry;
     baker.useMixer = useMixer;
     baker.useOven = useOven;
 
-    switch (bakerID) {
+    checkRecipe(&baker, recipe);
+
+    // sets the color for text
+    switch (ID) {
     case 0:
-        baker.color = "\033[31m";
+        strcpy(baker.color, "\033[31m");
         break;
     case 1:
-        baker.color = "\033[32m";
+        strcpy(baker.color, "\033[32m");
         break;
     case 2:
-        Baker.color = "\033[36m";
+        strcpy(baker.color, "\033[36m");
         break;
     }
 
@@ -28,32 +34,50 @@ Baker initBaker(int32_t* sharedMemPointer, uint32_t* semArray, int ID, int ramsa
 
 void* enterPantry(Baker* self) {
     self->printStatus(self, "entering pantry");
+    semop(self->memPointer[0], &p, 1);
 
 
+    self->ifCheckPantry = 0;
+    self->printStatus(self, "leaving pantry");
+    semop(self->memPointer[0], &v, 1);
 }
 
 void* enterFridge(Baker* self) {
     self->printStatus(self, "entering fridge");
+    semop(self->memPointer[1], &p, 1);
 
-
+    self->ifCheckFridge = 0;
+    self->printStatus(self, "leaving fridge");
+    semop(self->memPointer[1], &v, 1);
 }
-
 
 
 void* useMixer(Baker* self) {
     self->printStatus(self, "using mixer");
+    semop(self->memPointer[2], &p, 1);
 
-
-
+    self->printStatus(self, "finished using mixer");
+    semop(self->memPointer[2], &v, 1);
 }
 
 void* useOven(Baker* self) {
     self->printStatus(self, "using oven");
+    semop(self->memPointer[3], &p, 1);
 
-
-
+    self->printStatus(self, "finished using oven");
+    semop(self->memPointer[3], &v, 1);
 }
 
+
 void* printStatus(Baker* self, char* status) {
-    printf("%sBaker [%d] is [%s]%s\n", self->color, self->ID, status, CLEAR_COLOR);
+    printf("%sBaker [%d] is [%s]%s\n", self->color, self->ID, status, "\033[0m");
+}
+
+void checkRecipe(Baker* self, Recipe recipe) {
+    if (recipe.ingredients.flour | recipe.ingredients.sugar | recipe.ingredients.bakingSoda | recipe.ingredients.yeast | recipe.ingredients.salt | recipe.ingredients.cinnamon) {
+        self->ifCheckPantry = 1;
+    }
+    if (recipe.ingredients.eggs | recipe.ingredients.milk | recipe.ingredients.butter) {
+        self->ifCheckFridge = 1;
+    }
 }

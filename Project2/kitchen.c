@@ -1,45 +1,45 @@
-#include <pthread.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/shm.h>
-#include <sys/sem.h>
+// #pragma once
+#include "kitchen.h"
 
-struct sembuf p = {0, -1, SEM_UNDO}; // wait
-struct sembuf v = {0, +1, SEM_UNDO}; // signal
+int main(int argc, char** argv) {
+    // int numOfBakers;
+    // char* userInput = (char*) malloc(sizeof(char) * 10); 
+    int32_t* mock = (int*)malloc(sizeof(int) * 10);
+    Recipe mockRecipe = {
+        .name = "mock",
+        .ingredients = {1, 1, 1, 1, 1, 1, 1, 1, 1}
+    };
+    // printf("Enter a number of bakers: ");
+    // fgets(userInput, sizeof(char) * 10, stdin);
 
-int main(int argc, char **argv)
-{   
-    int numOfBakers;
-    char* userInput = (char*) malloc(sizeof(char) * 10); 
+    // numOfBakers = atoi(userInput);
+    // printf("You have entered %d bakers.\n", numOfBakers);
 
-    printf("Enter a number of bakers: ");
-    fgets(userInput, sizeof(char) * 10, stdin);
+    Baker myBaker = BakerFactory(mock, 0, 0, mockRecipe);
 
-    numOfBakers = atoi(userInput);
-    printf("You have entered %d bakers.\n", numOfBakers);
+    int semIDs[4]; // pantrySemID, fridgeSemID, utensilSemID, ovenSemID, 
+    semIDs[0] = createSemaphore(semIDs[0]); // pantrySemID
+    semIDs[1] = createSemaphore(semIDs[1]); // fridgeSemID
+    semIDs[2] = createSemaphore(semIDs[2]); // utensilSemID
+    semIDs[3] = createSemaphore(semIDs[3]); // ovenSemID
 
-    int semIDs[4] = // utensilSemID, fridgeSemID, pantrySemID, ovenSemID
-    semID[0] = createSemaphore(semID[0]); // utensilSemID
-    semID[1] = createSemaphore(semID[1]); // fridgeSemID
-    semID[2] = createSemaphore(semID[2]); // pantrySemID
-    semID[3] = createSemaphore(semID[3]); // ovenSemID
-
-    free(userInput);
+    // free(userInput);
+    free(mock);
     return 0;
 }
 
-int createSemaphore(int semID){
-    if ((semID = semget(IPC_PRIVATE, 1, S_IRUSR | S_IWUSR | IPC_CREAT)) == -1)
-    {
+int createSemaphore(int semID) {
+    if ((semID = semget(IPC_PRIVATE, 1, S_IRUSR | S_IWUSR | IPC_CREAT)) == -1) {
         perror("semget: semget failed");
         exit(1);
     }
 
     return semID;
+}
+
+void detachSemaphore(int semID) {
+    if (semctl(semID, 0, IPC_RMID) == -1) {
+        perror("semctl: semctl failed");
+        exit(1);
+    }
 }

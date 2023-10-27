@@ -1,25 +1,31 @@
+#pragma once
 
-#define IN_PANTRY 0
-#define IN_FRIDGE 1
-#define CLEAR_COLOR "\033[0m"
+#include "kitchen.h"
 
-typedef struct {
-    void* (*enterPantry)(Baker* self);
-    void* (*enterFridge)(Baker* self);
-    void* (*useOven)(Baker* self);
-    void* (*useMixer)(Baker* self);
-    void* (*printStatus)(Baker* self, char* status);
+typedef struct Baker{
+    void* (*enterPantry)(struct Baker* self);
+    void* (*enterFridge)(struct Baker* self);
+    void* (*useOven)(struct Baker* self);
+    void* (*useMixer)(struct Baker* self);
+    void* (*printStatus)(struct Baker* self, char* status);
     int ramsay;
-    char* color;
+    char color[6];
+    int32_t* memPointer;
+    int ifCheckFridge;
+    int ifCheckPantry;
+    int ID;
 } Baker;
 
 typedef struct {
     int flour;
-    int sugar;
+    int sugar; 
     int yeast;
     int bakingSoda;
     int salt;
     int cinnamon;
+    int eggs;
+    int milk;
+    int butter;
 } Ingredients;
 
 typedef struct {
@@ -40,4 +46,5 @@ void* enterPantry();
 void* enterFridge();
 void* useOven();
 void* useMixer();
-Baker initBaker();
+void checkRecipe(Baker* self, Recipe recipe);
+Baker BakerFactory(int32_t* sharedMemPointer, int ID, int ramsay, Recipe recipe);
