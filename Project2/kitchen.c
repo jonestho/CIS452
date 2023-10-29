@@ -102,11 +102,13 @@ void *dispatchBakers(void *arg){
     int* numOfBakers = (int*) arg;
 
     for(int i = 0; i < *numOfBakers; i++){
-        printf("Baker: %d\n", i);
-
         pthread_t baker;
         void *bakerResult;
         int bakerStatus;
+
+        // TODO: Make args and array that includes bakerID and ramsay. It will be handled in the baker thread.
+        // - Have the Ramsay value be random or from the user.
+        // - Ramsay code should probably be handled near the end of the project.
 
         int *bakerID;
         bakerID = (int*)malloc(sizeof(int));
@@ -128,7 +130,7 @@ void *dispatchBakers(void *arg){
 void *bakerWorks(void *arg)
 {
     int *bakerID = (int*) arg;
-    printf("Baker ID: %d\n", *bakerID);
+    printf("Baker %d is cooking \n", *bakerID);
 
     /*
     // Baker Mockup Code
