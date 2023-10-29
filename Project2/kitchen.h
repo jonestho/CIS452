@@ -20,6 +20,7 @@ struct sembuf v = {0, +1, SEM_UNDO}; // signal
 #include "baker.h"
 #include "baker.c"
 
-
 int createSemaphore(int semID);
 void detachSemaphore(int semID);
+void *dispatchBakers(void *arg);
+void *bakerWorks(void *arg);
