@@ -20,6 +20,31 @@ struct sembuf v = {0, +1, SEM_UNDO}; // signal
 #include "baker.h"
 #include "baker.c"
 
+Recipe cookiesRecipe = {
+    .name = "Cookies",
+    .ingredients = {1, 1, 0, 0, 0, 0, 0, 1, 1}
+};
+
+Recipe pancakesRecipe = {
+    .name = "Cookies",
+    .ingredients = {1, 1, 0, 1, 1, 0, 1, 1, 1}
+};
+
+Recipe pizzaDoughRecipe = {
+    .name = "Pizza Dough",
+    .ingredients = {0, 1, 1, 0, 1, 0, 0, 0, 0}
+};
+
+Recipe softPretzelRecipe = {
+    .name = "Soft Pretzel",
+    .ingredients = {1, 1, 1, 1, 1, 0, 1, 0, 0}
+};
+
+Recipe cinnamonRollRecipe = {
+    .name = "Cinnamon Roll",
+    .ingredients = {1, 1, 0, 0, 1, 1, 1, 0, 1}
+};
+
 int createSemaphore(int semID);
 void detachSemaphore(int semID);
 void *dispatchBakers(void *arg);

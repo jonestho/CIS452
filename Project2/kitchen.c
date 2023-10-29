@@ -2,6 +2,7 @@
 #include "kitchen.h"
 
 int bakersWorking;
+int **sharedMemoryPtr;
 
 int main(int argc, char** argv) {
     pthread_t dispatch;
@@ -10,8 +11,7 @@ int main(int argc, char** argv) {
     int dispatchStatus;
     int dispatchJoinResult;
 
-
-    int sharedMemoryID, *sharedMemoryPtr;
+    int sharedMemoryID;
     int semIDs[4]; // pantrySemID, fridgeSemID, utensilSemID, ovenSemID
 
     char* userInput = (char*) malloc(sizeof(char) * 10);
@@ -47,7 +47,11 @@ int main(int argc, char** argv) {
     printf("You have entered %d bakers.\n", bakersWorking);
 
     // Cooks do work
-    dispatchStatus = pthread_create(&dispatch, NULL, dispatchBakers, sharedMemoryPtr);
+    int *numOfBakersPtr;
+    numOfBakersPtr = (int*)malloc(sizeof(int));
+    memcpy(numOfBakersPtr, &bakersWorking, sizeof(int));
+
+    dispatchStatus = pthread_create(&dispatch, NULL, dispatchBakers, numOfBakersPtr);
     if (dispatchStatus != 0)
     {
         fprintf(stderr, "Thread create error %d: %s\n", dispatchStatus, strerror(dispatchStatus));
@@ -95,25 +99,39 @@ void detachSemaphore(int semID) {
 }
 
 void *dispatchBakers(void *arg){
-    for(int bakersDispatched = 0; bakersDispatched < bakersWorking; bakersDispatched++){
+    int* numOfBakers = (int*) arg;
+
+    for(int i = 0; i < *numOfBakers; i++){
+        printf("Baker: %d\n", i);
+
         pthread_t baker;
         void *bakerResult;
-
         int bakerStatus;
-        int bakerJoinResult;
 
-        bakerStatus = pthread_create(&baker, NULL, bakerWorks, arg);
+        int *bakerID;
+        bakerID = (int*)malloc(sizeof(int));
+        memcpy(bakerID, &i, sizeof(int));
+
+        bakerStatus = pthread_create(&baker, NULL, bakerWorks, bakerID);
         if (bakerStatus != 0)
         {
             fprintf(stderr, "Thread create error %d: %s\n", bakerStatus, strerror(bakerStatus));
             exit(1);
         }
-    }   
+    }
+
+    while(bakersWorking > 0);
+
+    printf("Bakers are finished.\n");
 }
 
 void *bakerWorks(void *arg)
 {
-    // Baker Test Code
+    int *bakerID = (int*) arg;
+    printf("Baker ID: %d\n", *bakerID);
+
+    /*
+    // Baker Mockup Code
     int32_t* mock = (int*)malloc(sizeof(int) * 10);
     Recipe mockRecipe = {
         .name = "mock",
@@ -121,4 +139,17 @@ void *bakerWorks(void *arg)
     };
     
     Baker myBaker = BakerFactory(mock, 0, 0, mockRecipe);
+
+    free(mock);
+    
+    // Baker cooks all the recipes (Refer to kitchen.h for recipes)
+    // arg = ID of Baker
+    myBaker = BakerFactory(sharedMemoryPtr, bakerID, 0, cookiesRecipe);
+    myBaker = BakerFactory(sharedMemoryPtr, bakerID, 0, pancakesRecipe);
+    myBaker = BakerFactory(sharedMemoryPtr, bakerID, 0, pizzaDoughRecipe);
+    myBaker = BakerFactory(sharedMemoryPtr, bakerID, 0, softPretzelRecipe);
+    myBaker = BakerFactory(sharedMemoryPtr, bakerID, 0, softPretzelRecipe);
+    */
+
+    bakersWorking--;
 }
