@@ -1,88 +1,88 @@
 // #pragma once
 #include "kitchen.h"
 
-int bakersWorking;
-int **sharedMemoryPtr;
+int* sharedMemoryPtr;
 
 int main(int argc, char** argv) {
-    pthread_t dispatch;
-    void *dispatchResult;
-
-    int dispatchStatus;
-    int dispatchJoinResult;
-
+    signal(SIGINT, sigtermHandler);
+    pthread_t dispatchThread;
     int sharedMemoryID;
     int semIDs[4]; // pantrySemID, fridgeSemID, utensilSemID, ovenSemID
-
-    char* userInput = (char*) malloc(sizeof(char) * 10);
+    int bakersWorking;
+    char* userInput = (char*)malloc(sizeof(char) * 10);
 
     // Creating Semaphores
-    semIDs[0] = createSemaphore(semIDs[0]); // pantrySemID
-    semIDs[1] = createSemaphore(semIDs[1]); // fridgeSemID
-    semIDs[2] = createSemaphore(semIDs[2]); // utensilSemID
-    semIDs[3] = createSemaphore(semIDs[3]); // ovenSemID
+    semIDs[0] = createSemaphore(); // pantrySemID
+    semIDs[1] = createSemaphore(); // fridgeSemID
+    semIDs[2] = createSemaphore(); // utensilSemID
+    semIDs[3] = createSemaphore(); // ovenSemID
+
+    semctl(semIDs[0], 0, SETVAL, 1);
+    semctl(semIDs[1], 0, SETVAL, 2);
+    semctl(semIDs[2], 0, SETVAL, 2);
+    semctl(semIDs[3], 0, SETVAL, 1);
 
     // Create Shared Memory for Semaphores
-    sharedMemoryID = shmget(IPC_PRIVATE, sizeof(semIDs), S_IRUSR | S_IWUSR | IPC_CREAT);
+    
 
-    if(sharedMemoryID < 0){
+    if ((sharedMemoryID = shmget(IPC_PRIVATE, sizeof(semIDs), S_IRUSR | S_IWUSR | IPC_CREAT)) < 0) {
         perror("shmget: Unable to obtain shared memory\n");
         exit(1);
     }
-
     sharedMemoryPtr = shmat(sharedMemoryID, 0, 0);
+    memcpy(sharedMemoryPtr, semIDs, sizeof(semIDs));
 
-    if (sharedMemoryPtr == (void *)-1)
-    {
-        perror("shmget: Unable to attach\n");
-        exit(1);
-    }
-
-    *sharedMemoryPtr = semIDs; // This requires two pointers, e.g., *(*sharedMemoryPtr) + 1
-
+    // Get user input
     printf("Enter a number of bakers: ");
     fgets(userInput, sizeof(char) * 10, stdin);
-
     bakersWorking = atoi(userInput);
     printf("You have entered %d bakers.\n", bakersWorking);
 
-    // Cooks do work
-    int *numOfBakersPtr;
-    numOfBakersPtr = (int*)malloc(sizeof(int));
-    memcpy(numOfBakersPtr, &bakersWorking, sizeof(int));
-
-    dispatchStatus = pthread_create(&dispatch, NULL, dispatchBakers, numOfBakersPtr);
-    if (dispatchStatus != 0)
-    {
-        fprintf(stderr, "Thread create error %d: %s\n", dispatchStatus, strerror(dispatchStatus));
+    // Create new thread
+    if (pthread_create(&dispatchThread, NULL, dispatchBakers, &bakersWorking) != 0) {
+        perror("Failed to create dispatch thread");
         exit(1);
     }
 
-    dispatchJoinResult = pthread_join(dispatch, &dispatchResult);
-    if (dispatchJoinResult != 0)
-    {
-        fprintf(stderr, "Join error %d: %s\n", dispatchJoinResult, strerror(dispatchJoinResult));
+    // Join thread
+    if (pthread_join(dispatchThread, NULL) != 0) {
+        perror("Failed to join dispatch thread");
         exit(1);
+    }
+
+    for (int i = 0; i < 4; i++) {
+        if(semctl(semIDs[i], 0, IPC_RMID) == -1)
+            perror("semctl: semctl failed");
     }
 
     // Detachment and Deallocation
-    if (shmdt(sharedMemoryPtr) < 0)
-    {
+    if (shmdt(sharedMemoryPtr) < 0) {
         perror("shmdt: Unable to detach\n");
         exit(1);
     }
 
-    if (shmctl(sharedMemoryID, IPC_RMID, 0) < 0)
-    {
+    // Delete shared memory
+    if (shmctl(sharedMemoryID, IPC_RMID, 0) < 0) {
         perror("shmctl: Unable to deallocate\n");
         exit(1);
     }
 
+    // Detach semaphores
     free(userInput);
     return 0;
 }
 
-int createSemaphore(int semID) {
+
+
+/**
+ * @brief Helper for creating semaphores
+ * 
+ * @param semID 
+ * @return int 
+ */
+
+int createSemaphore() {
+    int semID;
     if ((semID = semget(IPC_PRIVATE, 1, S_IRUSR | S_IWUSR | IPC_CREAT)) == -1) {
         perror("semget: semget failed");
         exit(1);
@@ -91,6 +91,13 @@ int createSemaphore(int semID) {
     return semID;
 }
 
+/**
+ * @brief Helper for detaching semaphores
+ * 
+ *
+ * @param semID 
+ */
+
 void detachSemaphore(int semID) {
     if (semctl(semID, 0, IPC_RMID) == -1) {
         perror("semctl: semctl failed");
@@ -98,60 +105,80 @@ void detachSemaphore(int semID) {
     }
 }
 
-void *dispatchBakers(void *arg){
-    int* numOfBakers = (int*) arg;
+/**
+ * @brief Baker driver function
+ * 
+ * @param arg 
+ * @return void* 
+ */
 
-    for(int i = 0; i < *numOfBakers; i++){
-        pthread_t baker;
-        void *bakerResult;
-        int bakerStatus;
+void* dispatchBakers(void* arg) {
+    int numOfBakers = *(int*)arg;
+    int ramsay = rand() % numOfBakers;
 
-        // TODO: Make args and array that includes bakerID and ramsay. It will be handled in the baker thread.
-        // - Have the Ramsay value be random or from the user.
-        // - Ramsay code should probably be handled near the end of the project.
+    pthread_t* bakerThreads = (pthread_t*)malloc(sizeof(pthread_t) * numOfBakers);
+    Baker* bakers = (Baker*)malloc(sizeof(Baker) * numOfBakers);
 
-        int *bakerID;
-        bakerID = (int*)malloc(sizeof(int));
-        memcpy(bakerID, &i, sizeof(int));
+    // Create Baker Threads
+    for (int i = 0; i < numOfBakers; i++) {
+        bakers[i] = BakerFactory(sharedMemoryPtr, i, ramsay);
 
-        bakerStatus = pthread_create(&baker, NULL, bakerWorks, bakerID);
-        if (bakerStatus != 0)
-        {
-            fprintf(stderr, "Thread create error %d: %s\n", bakerStatus, strerror(bakerStatus));
+        if (pthread_create(&bakerThreads[i], NULL, bakerWorks, &bakers[i]) != 0) {
+            perror("Failed to create baker thread");
             exit(1);
         }
     }
 
-    while(bakersWorking > 0);
+    // Join Baker Threads
+    for (int i = 0; i < numOfBakers; i++) {
+        if (pthread_join(bakerThreads[i], NULL) != 0) {
+            perror("Failed to join baker thread");
+            exit(1);
+        }
+    }
 
+    free(bakerThreads);
+    free(bakers);
     printf("Bakers are finished.\n");
 }
 
-void *bakerWorks(void *arg)
-{
-    int *bakerID = (int*) arg;
-    printf("Baker %d is cooking \n", *bakerID);
+/**
+ * @brief Baker function for threads
+ * 
+ *
+ * @param arg 
+ * @return NULL
+ */
 
-    /*
-    // Baker Mockup Code
-    int32_t* mock = (int*)malloc(sizeof(int) * 10);
-    Recipe mockRecipe = {
-        .name = "mock",
-        .ingredients = {1, 1, 1, 1, 1, 1, 1, 1, 1}
-    };
-    
-    Baker myBaker = BakerFactory(mock, 0, 0, mockRecipe);
+void* bakerWorks(void* arg) {
+    Baker baker = *(Baker*)arg;
 
-    free(mock);
-    
-    // Baker cooks all the recipes (Refer to kitchen.h for recipes)
-    // arg = ID of Baker
-    myBaker = BakerFactory(sharedMemoryPtr, bakerID, 0, cookiesRecipe);
-    myBaker = BakerFactory(sharedMemoryPtr, bakerID, 0, pancakesRecipe);
-    myBaker = BakerFactory(sharedMemoryPtr, bakerID, 0, pizzaDoughRecipe);
-    myBaker = BakerFactory(sharedMemoryPtr, bakerID, 0, softPretzelRecipe);
-    myBaker = BakerFactory(sharedMemoryPtr, bakerID, 0, softPretzelRecipe);
-    */
+    while (baker.currentRecipe < 5) {
+        checkRecipe(&baker);
+        if (baker.ifCheckFridge) enterFridge(&baker);
+        if (baker.ifCheckPantry) enterPantry(&baker);
+        useMixer(&baker);
 
-    bakersWorking--;
+        if (baker.ramsay == baker.ID) {
+            printf("Baker %d was Ramsay'd!\n", baker.ID);
+            baker.ramsay = -1;
+            continue;
+        }
+        useOven(&baker);
+        baker.currentRecipe++;
+    }
+    printf("Baker %d is done.\n", baker.ID);
+    return NULL;
 }
+
+
+void sigtermHandler(int sig) {
+    printf("SIGTERM received.\n");
+
+    for (int i = 0; i < 4; i++)
+        detachSemaphore(sharedMemoryPtr[i]);
+
+    exit(0);
+}
+
+
