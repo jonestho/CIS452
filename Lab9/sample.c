@@ -11,19 +11,34 @@ void mapInitialized();
 void mapUninitialized();
 void SIGSEGV_handler(int sig);
 
-int i = 0;
-int j;
+int firstInitialized = 0;
+int secondInitialized = 0;
+int thirdInitialized = 0;
+
+int firstUninitialized;
+int secondUninitialized;
+int thirdUninitialized;
+int fourthIn = 0;
+
+
+int fourthUnin;
 
 int main() {
     signal(SIGSEGV, SIGSEGV_handler);
     
     //mapStack();
     //mapHeap(0);
-    //mapInitialized();
-    //mapUninitialized();
 
-    printf("Unin: %p\n", &j);
-    printf("In: %p\n", &i);
+    
+    printf("Uninitialized Address: %p\n", &fourthUnin);
+    printf("Uninitialized Address: %p\n", &thirdUninitialized);
+    printf("Uninitialized Address: %p\n", &secondUninitialized);
+    printf("Uninitialized Address: %p\n", &firstUninitialized);
+
+    printf("Initialized Address: %p\n", &fourthIn);
+    printf("Initialized Address: %p\n", &thirdInitialized);
+    printf("Initialized Address: %p\n", &secondInitialized);
+    printf("Initialized Address: %p\n", &firstInitialized);
     
     return 0;
 }
@@ -51,17 +66,9 @@ void mapHeap(void* address) {
 }
 
 void mapInitialized(){
-    static int initialized = 0;
-    printf("Initialized Address: %p\n", &initialized);
-
-    mapInitialized();
 }
 
 void mapUninitialized(){
-    static int uninitialized;
-    printf("Uninitialized Address: %p\n", &uninitialized);
-
-    mapUninitialized();
 }
 
 void SIGSEGV_handler(int sig){
