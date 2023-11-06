@@ -4,52 +4,69 @@
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
+#include <sys/resource.h>
 
-void mapHeap(void* address);
-void mapStack();
+void mapHeap(int position);
+void mapStack(int position);
 void mapInitialized();
 void mapUninitialized();
 void SIGSEGV_handler(int sig);
 
-int firstInitialized = 0;
-int secondInitialized = 0;
-int thirdInitialized = 0;
+// (Un)Initialized variables can either go here or be static.
 
-int firstUninitialized;
-int secondUninitialized;
-int thirdUninitialized;
-int fourthIn = 0;
-
-
-int fourthUnin;
+struct rlimit stackSize;
 
 int main() {
     signal(SIGSEGV, SIGSEGV_handler);
-    
-    //mapStack();
-    //mapHeap(0);
 
-    
-    printf("Uninitialized Address: %p\n", &fourthUnin);
-    printf("Uninitialized Address: %p\n", &thirdUninitialized);
-    printf("Uninitialized Address: %p\n", &secondUninitialized);
-    printf("Uninitialized Address: %p\n", &firstUninitialized);
+    printf("------Stack Information------\n\n");
 
-    printf("Initialized Address: %p\n", &fourthIn);
-    printf("Initialized Address: %p\n", &thirdInitialized);
-    printf("Initialized Address: %p\n", &secondInitialized);
-    printf("Initialized Address: %p\n", &firstInitialized);
+    int stackVariable = 0;
+    int *stackStartAddress = &stackVariable + 1;
+
+    printf("Start Address: %p\n", stackStartAddress);
+
+    if(getrlimit(RLIMIT_STACK, &stackSize) == -1){
+        perror("getrlimit failed");
+        exit(1);
+    }
+
+    int stackSizeHex = stackSize.rlim_cur / 4;
+    int *stackEndAddress = &stackVariable + 1 - stackSizeHex;
+
+    printf("End Address: %p\n", stackEndAddress);
+
+    printf("\nNegative Growth Demonstration:\n");
+    mapStack(5);
+
+    printf("\n------Heap Information------\n\n");
+    
+    int *heapVariable = malloc(sizeof(int));
+
+    printf("Top of the Heap (3-Bytes Off): %p\n", stackEndAddress - 1);
+    printf("Bottom of the Heap: %p\n", heapVariable - 1);
+
+    printf("\nPositive Growth Demonstration:\n");
+    mapHeap(5);
+
+    printf("\n------Uninitialized Data Information------\n\n");
+    printf("COMING SOON\n");
     
     return 0;
 }
 
-void mapStack() {
+void mapStack(int position) {
     auto int temp = 0;
     printf("Stack Address: %p\n", &temp);
-    mapStack();
+
+    if(position > 0){
+        mapStack(position - 1);
+    }else{
+        printf("\n");
+    } 
 }
 
-void mapHeap(void* address) {
+void mapHeap(int position) {
     void* stackAddress;
 
     if ((stackAddress = malloc(sizeof(void*))) != NULL) {
@@ -57,12 +74,15 @@ void mapHeap(void* address) {
 
     }
     else {
-        printf("Error after %p\n", address);
+        printf("Error after %p\n", stackAddress);
         return;
     }
 
-    mapHeap(stackAddress);
-    free(stackAddress);
+    if(position > 0){
+        mapHeap(position - 1);
+    }else{
+        free(stackAddress);
+    }
 }
 
 void mapInitialized(){
