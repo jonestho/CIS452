@@ -43,7 +43,7 @@ int main() {
     printf("Address: %p\n", &thirdInitialized);
 
     printf("\n------Program Text Information------\n\n");
-    printf("Address of Main: %p\n\n", &main);
+    printf("Coming Soon\n");
 
     return 0;
 }
