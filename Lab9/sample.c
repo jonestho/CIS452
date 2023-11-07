@@ -8,50 +8,43 @@
 
 void mapHeap(int position);
 void mapStack(int position);
-void mapInitialized();
-void mapUninitialized();
 void SIGSEGV_handler(int sig);
 
 // (Un)Initialized variables can either go here or be static.
+int firstUninitialized;
+int secondUninitialized;
+int thirdUninitialized;
 
-struct rlimit stackSize;
+int firstInitialized = 1;
+int secondInitialized = 2;
+int thirdInitialized = 3;
 
 int main() {
     signal(SIGSEGV, SIGSEGV_handler);
 
     printf("------Stack Information------\n\n");
 
-    int stackVariable = 0;
-    int *stackStartAddress = &stackVariable + 1;
-
-    printf("Start Address: %p\n", stackStartAddress);
-
-    if(getrlimit(RLIMIT_STACK, &stackSize) == -1){
-        perror("getrlimit failed");
-        exit(1);
-    }
-
-    int stackSizeHex = stackSize.rlim_cur / 4;
-    int *stackEndAddress = &stackVariable + 1 - stackSizeHex;
-
-    printf("End Address: %p\n", stackEndAddress);
-
     printf("\nNegative Growth Demonstration:\n");
     mapStack(5);
 
     printf("\n------Heap Information------\n\n");
     
-    int *heapVariable = malloc(sizeof(int));
-
-    printf("Top of the Heap (3-Bytes Off): %p\n", stackEndAddress - 1);
-    printf("Bottom of the Heap: %p\n", heapVariable - 1);
-
     printf("\nPositive Growth Demonstration:\n");
     mapHeap(5);
 
     printf("\n------Uninitialized Data Information------\n\n");
-    printf("COMING SOON\n");
-    
+    printf("Address: %p\n", &firstUninitialized);
+    printf("Address: %p\n", &secondUninitialized);
+    printf("Address: %p\n", &thirdUninitialized);
+
+    printf("\n------Initialized Data Information------\n\n");
+    printf("Address: %p\n", &firstInitialized);
+    printf("Address: %p\n", &secondInitialized);
+    printf("Address: %p\n", &thirdInitialized);
+
+    printf("\n------Program Text Information------\n\n");
+    printf("Address of Main: %p\n\n", &main);
+
     return 0;
 }
 
@@ -83,12 +76,6 @@ void mapHeap(int position) {
     }else{
         free(stackAddress);
     }
-}
-
-void mapInitialized(){
-}
-
-void mapUninitialized(){
 }
 
 void SIGSEGV_handler(int sig){
