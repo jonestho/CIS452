@@ -43,7 +43,9 @@ int main() {
     printf("Address: %p\n", &thirdInitialized);
 
     printf("\n------Program Text Information------\n\n");
-    printf("Coming Soon\n");
+    printf("Address: %p\n", &mapStack);
+    printf("Address: %p\n", &mapHeap);
+    printf("Address: %p\n", &SIGSEGV_handler);
 
     return 0;
 }
