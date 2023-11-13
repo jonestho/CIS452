@@ -20,6 +20,5 @@ int main(){
             for (j=0; j<dim; j++)
                 intPtr[i * dim + j] = (i + j) % count;
                 free (intPtr);
-                return 0;
-                
+                return 0;            
 }
