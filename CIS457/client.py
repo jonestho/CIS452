@@ -2,12 +2,16 @@ import random
 import signal
 import socket
 import sys
+import time
 
+interruptReceived = False
 
-def signalHandler(sigNum, signalFrame):
-    print("Interrupt received. Closing client connection.")
-    sys.exit(0)
+def interruptHandler(sigNum, signalFrame):
+    global interruptReceived
+    interruptReceived = True
 
+def receivedFromServer():
+    print("Here!")
 
 def generateNumbers():
     factorA = random.randrange(1, 8)
@@ -21,7 +25,7 @@ def generateNumbers():
 
 
 serverIPAddress = ""
-portMPI = 0
+portNumber = 0
 
 clientSocket = socket.socket()
 
@@ -29,7 +33,7 @@ clientInput = ""
 isConnected = False
 
 try:
-    clientSocket.connect((serverIPAddress, portMPI))
+    clientSocket.connect((serverIPAddress, portNumber))
 
 except socket.error as clientError:
     print("Error: Could not connect to server. Exiting now")
@@ -40,15 +44,24 @@ isConnected = True  # FOR TESTING
 if isConnected:
     valueIndex = 0
     calculatedValue = 0
+    factorsByIndex = []
 
-    signal.signal(signal.SIGINT, signalHandler)
+    signal.signal(signal.SIGINT, interruptHandler)
 
-    while clientInput != -1 or clientInput != "-1":
+    while not interruptReceived:
         factors = generateNumbers()
+        factorsByIndex.append(factors)
 
-        print("Factor A: {}".format(factors[0]))
-        print("Factor B: {}".format(factors[1]))
-        print("Factor C: {}".format(factors[2]))
-        print("Factor D: {}".format(factors[3]))
+        calculatedValue = (2 ** factors[0]) * (3 ** factors[1]) * (5 ** factors[2]) * (7 ** factors[3])
+        print("{}, {}".format(valueIndex, calculatedValue))
 
-        clientInput = -1
+        
+
+        # send to server
+        # when server 
+
+        time.sleep(0.5)
+        valueIndex += 1
+
+    print("\nInterrupt received. Exiting now")
+        
