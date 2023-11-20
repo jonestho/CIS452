@@ -21,6 +21,31 @@ def generateNumbers():
     return factors
 
 
+def checkFactors(index, factors):
+    global factorsByIndex
+    isMatching = True
+
+    for i in range(len(factors)):
+        if factors[i] != factorsByIndex[index][i]:
+            isMatching = False
+            break
+
+    return isMatching
+
+
+def receiveFactors(index):
+    global clientSocket
+    global factorsByIndex
+
+    time.sleep(2)
+    # message = clientSocket.recv(1024).decode()
+    if checkFactors(index, factorsByIndex[index]):
+        print("Server: Index ({}) and Factors {} are correct.\n"
+              .format(index, factorsByIndex[index]))
+    else:
+        print("Server: wrong\n")
+
+
 def sendFactors():
     global clientSocket
     global factorsByIndex
@@ -35,18 +60,13 @@ def sendFactors():
 
         print("Client: Sending Index ({}) and Value ({})\n".format(valueIndex, calculatedValue))
 
+        receiverThread = threading.Thread(target=receiveFactors, args=(valueIndex,))
+        receiverThread.start()
+
         time.sleep(0.5)
-        valueIndex += 1
 
-
-def validateFactors():
-    global clientSocket
-    global factorsByIndex
-    global valueIndex
-
-    while not interruptReceived:
-        print("Server: Index ({}) and Factors {} are correct.\n".format(valueIndex, factorsByIndex[valueIndex]))
-        time.sleep(0.5)
+        if not interruptReceived:
+            valueIndex += 1
 
 
 if __name__ == '__main__':
@@ -63,21 +83,17 @@ if __name__ == '__main__':
         isConnected = True
     except socket.error as clientError:
         print("Error: Could not connect to server. Exiting now")
-
-    isConnected = True  # FOR TESTING
+        isConnected = True  # FOR TESTING
 
     if isConnected:
         signal.signal(signal.SIGINT, signalHandler)
+
         factorsByIndex = []
         valueIndex = 0
 
         senderThread = threading.Thread(target=sendFactors)
-        receiverThread = threading.Thread(target=validateFactors)
-
         senderThread.start()
-        receiverThread.start()
 
         senderThread.join()
-        receiverThread.join()
 
         print("\nInterrupt received. Exiting now")
