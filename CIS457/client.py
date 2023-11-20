@@ -38,7 +38,8 @@ def receiveFactors(index):
     global factorsByIndex
 
     time.sleep(2)
-    # message = clientSocket.recv(1024).decode()
+    message = clientSocket.recv(1024).decode()
+    print(message)
     if checkFactors(index, factorsByIndex[index]):
         print("Server: Index ({}) and Factors {} are correct.\n"
               .format(index, factorsByIndex[index]))
@@ -72,8 +73,8 @@ def sendFactors():
 if __name__ == '__main__':
     interruptReceived = False
 
-    serverIPAddress = ""
-    portNumber = 0
+    serverIPAddress = "127.0.0.1"
+    portNumber = 5000
 
     clientSocket = socket.socket()
     isConnected = False
