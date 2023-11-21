@@ -59,12 +59,16 @@ def sendFactors():
         calculatedValue = ((2 ** currentFactors[0]) * (3 ** currentFactors[1]) * (5 ** currentFactors[2])
                            * (7 ** currentFactors[3]))
 
-        print("Client: Sending Index ({}) and Value ({})\n".format(valueIndex, calculatedValue))
+        time.sleep(2)
+
+        print("{} {}".format(valueIndex, factorsByIndex[valueIndex]))
+        clientSocket.send("WWOOOOO".encode())
+
+        break
 
         receiverThread = threading.Thread(target=receiveFactors, args=(valueIndex,))
         receiverThread.start()
 
-        time.sleep(0.5)
 
         if not interruptReceived:
             valueIndex += 1
@@ -84,7 +88,6 @@ if __name__ == '__main__':
         isConnected = True
     except socket.error as clientError:
         print("Error: Could not connect to server. Exiting now")
-        isConnected = True  # FOR TESTING
 
     if isConnected:
         signal.signal(signal.SIGINT, signalHandler)
