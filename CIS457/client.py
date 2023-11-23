@@ -1,3 +1,4 @@
+import numpy as np
 import random
 import signal
 import socket
@@ -26,25 +27,33 @@ def checkFactors(index, factors):
     isMatching = True
 
     for i in range(len(factors)):
-        if factors[i] != factorsByIndex[index][i]:
+        if int(factors[i]) != factorsByIndex[index][i]:
             isMatching = False
             break
 
     return isMatching
 
 
-def receiveFactors(index):
+def receiveFactors():
     global clientSocket
     global factorsByIndex
 
     time.sleep(2)
-    message = clientSocket.recv(1024).decode()
-    print(message)
-    if checkFactors(index, factorsByIndex[index]):
-        print("Server: Index ({}) and Factors {} are correct.\n"
-              .format(index, factorsByIndex[index]))
+
+    # message = clientSocket.recv(1024).decode()
+    message = "0, [1,10,1,1000]"  # Sample Message
+
+    receivedIndex = int(message[0])
+    receivedValues = message[4:len(message) - 1]
+
+    receivedValues = receivedValues.split(",")
+
+    print("Received: {}, {}\n".format(receivedIndex, receivedValues))
+
+    if checkFactors(receivedIndex, factorsByIndex[receivedIndex]):
+        print("Factors at Index {} are correct.\n".format(receivedIndex))
     else:
-        print("Server: wrong\n")
+        print("Factors at Index {} are incorrect.\n".format(receivedIndex))
 
 
 def sendFactors():
@@ -52,7 +61,9 @@ def sendFactors():
     global factorsByIndex
     global valueIndex
 
-    while not interruptReceived:
+    threadCount = 0
+
+    while not interruptReceived and valueIndex != 3:  # SECOND CONDITION FOR TESTING
         currentFactors = generateNumbers()
         factorsByIndex.append(currentFactors)
 
@@ -61,14 +72,13 @@ def sendFactors():
 
         time.sleep(2)
 
-        print("{} {}".format(valueIndex, factorsByIndex[valueIndex]))
-        clientSocket.send("WWOOOOO".encode())
+        # clientSocket.send("{}, {}".format(valueIndex, calculatedValue).encode())
+        print("Sent: {}, {}".format(valueIndex, calculatedValue))
 
-        break
-
-        receiverThread = threading.Thread(target=receiveFactors, args=(valueIndex,))
+        receiverThread = threading.Thread(target=receiveFactors)
         receiverThread.start()
 
+        threadCount += 1
 
         if not interruptReceived:
             valueIndex += 1
@@ -86,8 +96,10 @@ if __name__ == '__main__':
     try:
         clientSocket.connect((serverIPAddress, portNumber))
         isConnected = True
+
     except socket.error as clientError:
         print("Error: Could not connect to server. Exiting now")
+        isConnected = True  # FOR TESTING
 
     if isConnected:
         signal.signal(signal.SIGINT, signalHandler)
