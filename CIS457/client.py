@@ -1,4 +1,3 @@
-import numpy as np
 import random
 import signal
 import socket
@@ -37,8 +36,9 @@ def checkFactors(index, factors):
 def receiveFactors():
     global clientSocket
     global factorsByIndex
+    global workingThreads
 
-    time.sleep(2)
+    time.sleep(3)
 
     # message = clientSocket.recv(1024).decode()
     message = "0, [1,10,1,1000]"  # Sample Message
@@ -55,30 +55,31 @@ def receiveFactors():
     else:
         print("Factors at Index {} are incorrect.\n".format(receivedIndex))
 
+    workingThreads -= 1
+    print("Threads Remaining: {}".format(workingThreads))
+
 
 def sendFactors():
     global clientSocket
     global factorsByIndex
     global valueIndex
+    global workingThreads
 
-    threadCount = 0
-
-    while not interruptReceived and valueIndex != 3:  # SECOND CONDITION FOR TESTING
+    while not interruptReceived:  # SECOND CONDITION FOR TESTING
         currentFactors = generateNumbers()
         factorsByIndex.append(currentFactors)
 
         calculatedValue = ((2 ** currentFactors[0]) * (3 ** currentFactors[1]) * (5 ** currentFactors[2])
                            * (7 ** currentFactors[3]))
 
-        time.sleep(2)
+        time.sleep(0.5)
 
         # clientSocket.send("{}, {}".format(valueIndex, calculatedValue).encode())
         print("Sent: {}, {}".format(valueIndex, calculatedValue))
 
+        workingThreads += 1
         receiverThread = threading.Thread(target=receiveFactors)
         receiverThread.start()
-
-        threadCount += 1
 
         if not interruptReceived:
             valueIndex += 1
@@ -104,12 +105,18 @@ if __name__ == '__main__':
     if isConnected:
         signal.signal(signal.SIGINT, signalHandler)
 
+        workingThreads = 0
         factorsByIndex = []
         valueIndex = 0
 
         senderThread = threading.Thread(target=sendFactors)
         senderThread.start()
-
         senderThread.join()
 
         print("\nInterrupt received. Exiting now")
+
+        while workingThreads != 0:
+            continue
+
+        print("Thank you!")
+        # clientSocket.send('-1'.encode())
