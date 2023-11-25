@@ -42,11 +42,18 @@ int main(int argc, char** argv) {
     while (true) {
         if (rank == 1) { // thread to send to client
             std::vector<int> buffer(5);
+            std::string output;
             MPI_Recv(buffer.data(), 5, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             if (buffer[1] < 0) {
                 break;
             }
-            std::cout << "Sending to client: " << buffer[0] << " " << buffer[1] << " " << buffer[2] << " " << buffer[3] << " " << buffer[4] << " " << buffer[5] << std::endl;
+
+            for (int i = 0; i < buffer.size(); i++) {
+                output += std::to_string(buffer[i]);
+                output += ",";
+            }
+            std::cout << "Sending to client: " << output << std::endl;
+
             write(client_sockfd, buffer.data(), sizeof(int) * 5);
         }
         else { // thread to receive jobs
@@ -60,7 +67,11 @@ int main(int argc, char** argv) {
 
             std::vector<int> factors(5);
             memcpy(factors.data(), getPrimeFactors(buffer[0], buffer[1]), sizeof(int) * 5);
-            printf("Rank: %d, Number: %d, Factors: %d %d %d %d %d\n", rank, buffer[1], factors[1], factors[2], factors[3], factors[4], factors[5]);
+
+            std::cout << factors.data() << std::endl;
+
+            // printf("Rank: %d, Number: %d, Output: %s\n", rank, buffer[1], output.c_str());
+
             MPI_Send(factors.data(), 5, MPI_INT, 1, 0, MPI_COMM_WORLD);
         }
     }
@@ -114,7 +125,7 @@ void listenForClient(int ranks) {
         std::vector<int> nums = parseMessage(buffer);
         std::cout << "Received: " << nums[0] << " " << nums[1] << std::endl;
         //send the jobs out
-        dest = (dest++ == ranks-1) ? 2 : dest;
+        dest = (dest++ == ranks - 1) ? 2 : dest;
         std::cout << "Sending to rank: " << dest << std::endl;
         MPI_Send(nums.data(), 2, MPI_INT, dest, 0, MPI_COMM_WORLD);
         if (nums[1] < 0) {
