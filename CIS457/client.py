@@ -40,12 +40,12 @@ def receiveFactors():
 
     time.sleep(3)
 
-    # message = clientSocket.recv(1024).decode()
-    message = "0, [1,10,1,1000]"  # Sample Message
+    message = clientSocket.recv(1024).decode()
+    # Format: "index,val,val,val,val"
 
     receivedIndex = int(message[0])
-    receivedValues = message[4:len(message) - 1]
 
+    receivedValues = message[2:len(message)]
     receivedValues = receivedValues.split(",")
 
     print("Received: {}, {}\n".format(receivedIndex, receivedValues))
@@ -65,14 +65,14 @@ def sendFactors():
     global valueIndex
     global workingThreads
 
-    while not interruptReceived:  # SECOND CONDITION FOR TESTING
+    while not interruptReceived:
         currentFactors = generateNumbers()
         factorsByIndex.append(currentFactors)
 
         calculatedValue = ((2 ** currentFactors[0]) * (3 ** currentFactors[1]) * (5 ** currentFactors[2])
                            * (7 ** currentFactors[3]))
 
-        time.sleep(0.5)
+        time.sleep(2)
 
         clientSocket.send("{}, {}".format(valueIndex, calculatedValue).encode())
         print("Sent: {}, {}".format(valueIndex, calculatedValue))
@@ -100,7 +100,6 @@ if __name__ == '__main__':
 
     except socket.error as clientError:
         print("Error: Could not connect to server. Exiting now")
-        isConnected = True  # FOR TESTING
 
     if isConnected:
         signal.signal(signal.SIGINT, signalHandler)
@@ -113,7 +112,7 @@ if __name__ == '__main__':
         senderThread.start()
         senderThread.join()
 
-        print("\nInterrupt received. Exiting now")
+        print("\nInterrupt received. Shutting down.")
 
         while workingThreads != 0:
             continue
