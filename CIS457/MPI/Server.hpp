@@ -10,8 +10,11 @@
 #include <sys/types.h>
 #include <cstring>
 #include <vector>
+#include <assert.h>
+#include <math.h>
 
 #define LOCAL_HOST "127.0.0.1"   
 #define MAX_CLIENTS 5
-int listenForClient();
+void listenForClient(int ranks);
 int* getPrimeFactors(int ID, int number);
+std::vector<int> parseMessage(char* buffer);

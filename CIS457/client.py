@@ -74,7 +74,7 @@ def sendFactors():
 
         time.sleep(0.5)
 
-        # clientSocket.send("{}, {}".format(valueIndex, calculatedValue).encode())
+        clientSocket.send("{}, {}".format(valueIndex, calculatedValue).encode())
         print("Sent: {}, {}".format(valueIndex, calculatedValue))
 
         workingThreads += 1

@@ -1,12 +1,13 @@
 #include "Server.hpp"
 
-
+#define PORT "5000"
 
 int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
     std::vector<std::vector<int>> numbers;
     int dest = 0;
     char* port = (char*)calloc(sizeof(char), 5);
+    strcpy(port, PORT);
     int client_sockfd;
     int rank, size;
     MPI_Info info;
@@ -27,31 +28,18 @@ int main(int argc, char** argv) {
     // MPI_Group_incl(client_group, 1, &rank, &server_group); // Create a new group from the parent group
 
     if (rank == 0) {
-        MPI_Open_port(info, port); // Open a port for the server to listen on
+        // MPI_Open_port(info, port); // Open a port for the server to listen on
         std::cout << "Server is running..." << std::endl;
         std::cout << "Server rank: " << rank << std::endl;
         std::cout << "Server size: " << size << std::endl;
-        client_sockfd = listenForClient();
-        MPI_Send(&client_sockfd, 5, MPI_INT, 1, 0, MPI_COMM_WORLD);
+        listenForClient(size);
+        exit(0);
     }
     if (rank == 1) {
         MPI_Recv(&client_sockfd, 5, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
     // Listen for a client
     while (true) {
-        if (rank == 0) {// master thread
-            std::cout << "Client connected" << std::endl;
-            std::vector<int> buffer(2);
-            read(client_sockfd, buffer.data(), sizeof(int) * 2);
-            numbers.push_back(buffer);
-            std::cout << "Received: " << buffer[0] << " " << buffer[1] << std::endl;
-            //send the jobs out
-            dest = (dest++ == size) ? 2 : dest;
-            MPI_Send(buffer.data(), 2, MPI_INT, dest, 0, MPI_COMM_WORLD);
-            if (buffer[1] < 0) {
-                break;
-            }
-        }
         if (rank == 1) { // thread to send to client
             std::vector<int> buffer(5);
             MPI_Recv(buffer.data(), 5, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -81,18 +69,20 @@ int main(int argc, char** argv) {
 }
 
 
-int listenForClient() {
-    int sockfd, newsockfd;
+void listenForClient(int ranks) {
+    int sockfd, newsockfd, size, dest;
     uint clilen;
     struct sockaddr_in server_addr, client_addr;
+    char* buffer = (char*)calloc(sizeof(char), 100);
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         std::cout << "Failed to create socket" << std::endl;
         exit(1);
     }
+    bzero((char*)&server_addr, sizeof(server_addr));
 
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(atoi("5000"));
+    server_addr.sin_port = htons(atoi(PORT));
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
@@ -103,16 +93,40 @@ int listenForClient() {
     listen(sockfd, MAX_CLIENTS);
     clilen = sizeof(client_addr);
 
-    if ((newsockfd = accept(sockfd, (struct sockaddr*)&client_addr, &clilen) < 0)) {
+    newsockfd = accept(sockfd, (struct sockaddr*)&client_addr, &clilen);
+
+    if (newsockfd < 0) {
         perror("ERROR on accept");
         exit(1);
     }
+    // MPI_Send(&newsockfd, 5, MPI_INT, 1, 0, MPI_COMM_WORLD);
+    std::cout << "Client connected" << std::endl;
 
-    return sockfd;
+    while (1) {
+        bzero(buffer, sizeof(char) * 100);
+        // if((read(newsockfd, buffer, sizeof(char) * 9)) < 0) {
+            // perror("ERROR reading from socket");
+            // exit(1);
+        // }
+        read(newsockfd, buffer, sizeof(char) * 99);
+        buffer[9] = '\0';
+        printf("Here is the message: %s\n", buffer);
+        std::vector<int> nums = parseMessage(buffer);
+        std::cout << "Received: " << nums[0] << " " << nums[1] << std::endl;
+        //send the jobs out
+        dest = (dest++ == ranks-1) ? 2 : dest;
+        std::cout << "Sending to rank: " << dest << std::endl;
+        MPI_Send(nums.data(), 2, MPI_INT, dest, 0, MPI_COMM_WORLD);
+        if (nums[1] < 0) {
+            free(buffer);
+            break;
+        }
+    }
+
+
 }
 
 int* getPrimeFactors(int ID, int number) {
-
     int* factors = (int*)calloc(sizeof(int), 5);
     factors[0] = ID;
 
@@ -136,3 +150,12 @@ int* getPrimeFactors(int ID, int number) {
     return factors;
 }
 
+std::vector<int> parseMessage(char* buffer) {
+    std::vector<int> numbers;
+    char* token = strtok(buffer, " ");
+    numbers.push_back(atoi(token));
+    token = strtok(NULL, " ");
+    numbers.push_back(atoi(token));
+    return numbers;
+
+}
