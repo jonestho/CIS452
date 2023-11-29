@@ -4,11 +4,6 @@
 
 int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
-    std::vector<std::vector<int>> numbers;
-    int dest = 0;
-    char* port = (char*)calloc(sizeof(char), 5);
-    strcpy(port, PORT);
-    int client_sockfd;
     int rank, size;
     MPI_Info info;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank); // Get the rank of the current process
@@ -16,63 +11,33 @@ int main(int argc, char** argv) {
 
     MPI_Info_create(&info); // Create an info object
 
-    // MPI_Comm server_comm, client_comm;
-    // MPI_Comm_create(MPI_COMM_WORLD, MPI_GROUP_EMPTY, &server_comm); // Create a new communicator for the server
-    // MPI_Comm_create(MPI_COMM_WORLD, MPI_GROUP_EMPTY, &client_comm); // Create a new communicator for the client
-
-    // MPI_Group server_group, client_group;
-    // MPI_Comm_group(MPI_COMM_WORLD, &server_group); // Get the group of the parent communicator
-    // MPI_Group_incl(server_group, 1, &rank, &client_group); // Create a new group from the parent group
-
-    // MPI_Comm_group(MPI_COMM_WORLD, &client_group); // Get the group of the parent communicator
-    // MPI_Group_incl(client_group, 1, &rank, &server_group); // Create a new group from the parent group
 
     if (rank == 0) {
-        // MPI_Open_port(info, port); // Open a port for the server to listen on
         std::cout << "Server is running..." << std::endl;
         std::cout << "Server rank: " << rank << std::endl;
         std::cout << "Server size: " << size << std::endl;
-        listenForClient(size);
-        exit(0);
+        runServer(listenForClient(), size);
     }
-    if (rank == 1) {
-        MPI_Recv(&client_sockfd, 5, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-    // Listen for a client
-    while (true) {
-        if (rank == 1) { // thread to send to client
-            std::vector<int> buffer(5);
-            std::string output;
-            MPI_Recv(buffer.data(), 5, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            if (buffer[1] < 0) {
-                break;
-            }
+    else {
+        while (true) {
 
-            for (int i = 0; i < buffer.size(); i++) {
-                output += std::to_string(buffer[i]);
-                output += ",";
-            }
-            std::cout << "Sending to client: " << output << std::endl;
+            uint64_t* buffer = (uint64_t*)calloc(sizeof(uint64_t), 2);
+            int* factors;
 
-            write(client_sockfd, buffer.data(), sizeof(int) * 5);
-        }
-        else { // thread to receive jobs
-            std::vector<int> buffer(2);
-            MPI_Recv(buffer.data(), 2, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(buffer, 2, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
             // if payload is -1, then we are done
-            if (buffer[1] < 0) {
-                break;
+            if (buffer[0] == 0) {
+                return 0;
             }
 
-            std::vector<int> factors(5);
-            memcpy(factors.data(), getPrimeFactors(buffer[0], buffer[1]), sizeof(int) * 5);
+            // get the prime factors
+            factors = getPrimeFactors(buffer[0], buffer[1]);
 
-            std::cout << factors.data() << std::endl;
-
-            // printf("Rank: %d, Number: %d, Output: %s\n", rank, buffer[1], output.c_str());
-
-            MPI_Send(factors.data(), 5, MPI_INT, 1, 0, MPI_COMM_WORLD);
+            // Send the prime factors back to the main thread
+            MPI_Send(factors, 5, MPI_INT, 0, 0, MPI_COMM_WORLD);
+            free(buffer);
+            free(factors);
         }
     }
 
@@ -80,11 +45,10 @@ int main(int argc, char** argv) {
 }
 
 
-void listenForClient(int ranks) {
-    int sockfd, newsockfd, size, dest;
+int listenForClient() {
+    int sockfd, newsockfd;
     uint clilen;
     struct sockaddr_in server_addr, client_addr;
-    char* buffer = (char*)calloc(sizeof(char), 100);
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         std::cout << "Failed to create socket" << std::endl;
@@ -110,34 +74,63 @@ void listenForClient(int ranks) {
         perror("ERROR on accept");
         exit(1);
     }
-    // MPI_Send(&newsockfd, 5, MPI_INT, 1, 0, MPI_COMM_WORLD);
     std::cout << "Client connected" << std::endl;
+    return newsockfd;
+}
 
-    while (1) {
-        bzero(buffer, sizeof(char) * 100);
-        // if((read(newsockfd, buffer, sizeof(char) * 9)) < 0) {
-            // perror("ERROR reading from socket");
-            // exit(1);
-        // }
-        read(newsockfd, buffer, sizeof(char) * 99);
-        buffer[9] = '\0';
-        printf("Here is the message: %s\n", buffer);
-        std::vector<int> nums = parseMessage(buffer);
-        std::cout << "Received: " << nums[0] << " " << nums[1] << std::endl;
-        //send the jobs out
-        dest = (dest++ == ranks - 1) ? 2 : dest;
-        std::cout << "Sending to rank: " << dest << std::endl;
-        MPI_Send(nums.data(), 2, MPI_INT, dest, 0, MPI_COMM_WORLD);
-        if (nums[1] < 0) {
-            free(buffer);
-            break;
-        }
+
+void runServer(int client_sockfd, int ranks) {
+    pthread_t thread;
+    char* buffer = (char*)calloc(sizeof(char), 100);
+    int size, dest = 0;
+
+    if ((pthread_create(&thread, NULL, sendToClient, (void*)&client_sockfd)) < 0) {
+        perror("ERROR on thread creation");
+        exit(1);
     }
 
 
+    while (1) {
+        bzero(buffer, sizeof(char) * 100);
+        if ((read(client_sockfd, buffer, sizeof(char) * 99)) < 0) {
+            perror("ERROR reading from socket");
+            exit(1);
+        }
+        uint64_t* nums = parseMessage(buffer);
+        std::cout << "Received: " << nums[0] << " " << nums[1] << std::endl;
+
+        // exit condition
+        if (nums[0] == 0) [[unlikely]] {
+            std::cout << "Exiting..." << std::endl;
+
+            // send exit signal to all processes
+            for (int i = 1; i < ranks; i++) {
+                MPI_Send(nums, 2, MPI_UINT64_T, i, 0, MPI_COMM_WORLD);
+            }
+
+            // kill the thread
+            if ((pthread_cancel(thread)) < 0) {
+                perror("ERROR on thread kill");
+                MPI_Abort(MPI_COMM_WORLD, 1);
+            }
+
+            close(client_sockfd);
+            free(buffer);
+            free(nums);
+            return;
+        }
+
+            //send the jobs out
+        dest = (dest++ == ranks - 1) ? 2 : dest;
+        std::cout << "Sending to rank: " << dest << std::endl;
+        MPI_Send(nums, 2, MPI_UINT64_T, dest, 0, MPI_COMM_WORLD);
+
+
+        free(nums);
+    }
 }
 
-int* getPrimeFactors(int ID, int number) {
+int* getPrimeFactors(uint64_t ID, uint64_t number) {
     int* factors = (int*)calloc(sizeof(int), 5);
     factors[0] = ID;
 
@@ -161,12 +154,35 @@ int* getPrimeFactors(int ID, int number) {
     return factors;
 }
 
-std::vector<int> parseMessage(char* buffer) {
-    std::vector<int> numbers;
+uint64_t* parseMessage(char* buffer) {
+    uint64_t* numbers = (uint64_t*)calloc(sizeof(uint64_t), 2);
     char* token = strtok(buffer, " ");
-    numbers.push_back(atoi(token));
+    numbers[0] = atoi(token);
     token = strtok(NULL, " ");
-    numbers.push_back(atoi(token));
+    numbers[1] = atoi(token);
     return numbers;
+}
 
+
+void* sendToClient(void* client_sockfd) {
+    int sockfd = *(int*)client_sockfd;
+
+    while (true) {
+        int* buffer = (int*)calloc(sizeof(int), 5);
+        std::string output;
+
+        MPI_Recv(buffer, 5, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+        // Create string to send
+        for (int i = 0; i < 4; i++) {
+            output += std::to_string(buffer[i]);
+            output += ",";
+        }
+        output += std::to_string(buffer[4]);
+
+        std::cout << "Sending to client: " << output << std::endl;
+
+        write(sockfd, output.c_str(), strlen(output.c_str()));
+    }
+    return NULL;
 }

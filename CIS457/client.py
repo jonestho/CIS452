@@ -8,6 +8,7 @@ import time
 def signalHandler(sigNum, sigHandler):
     global interruptReceived
     interruptReceived = True
+    exit(0)
 
 
 def generateNumbers():
@@ -38,15 +39,15 @@ def receiveFactors():
     global factorsByIndex
     global workingThreads
 
-    time.sleep(3)
 
     message = clientSocket.recv(1024).decode()
     # Format: "index,val,val,val,val"
 
     receivedIndex = int(message[0])
 
-    receivedValues = message[2:len(message)]
-    receivedValues = receivedValues.split(",")
+    receivedValues = message[2:]
+    # receivedValues = receivedValues.split(",")
+    receivedValues = receivedValues[2:].split(",")
 
     print("Received: {}, {}\n".format(receivedIndex, receivedValues))
 
@@ -64,15 +65,17 @@ def sendFactors():
     global factorsByIndex
     global valueIndex
     global workingThreads
+    counter = 0
+    upperBound = 10
 
-    while not interruptReceived:
+    while not interruptReceived and counter < upperBound:
         currentFactors = generateNumbers()
         factorsByIndex.append(currentFactors)
 
         calculatedValue = ((2 ** currentFactors[0]) * (3 ** currentFactors[1]) * (5 ** currentFactors[2])
                            * (7 ** currentFactors[3]))
 
-        time.sleep(2)
+        time.sleep(0.2)
 
         clientSocket.send("{}, {}".format(valueIndex, calculatedValue).encode())
         print("Sent: {}, {}".format(valueIndex, calculatedValue))
@@ -83,6 +86,9 @@ def sendFactors():
 
         if not interruptReceived:
             valueIndex += 1
+            counter += 1
+    clientSocket.send("{}, {}".format(0, 0).encode())
+
 
 
 if __name__ == '__main__':
@@ -106,7 +112,7 @@ if __name__ == '__main__':
 
         workingThreads = 0
         factorsByIndex = []
-        valueIndex = 0
+        valueIndex = 1
 
         senderThread = threading.Thread(target=sendFactors)
         senderThread.start()
