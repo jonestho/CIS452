@@ -41,17 +41,15 @@ def receiveFactors():
 
 
     message = clientSocket.recv(1024).decode()
-    # Format: "index,val,val,val,val"
+    receivedValues = message.split(",")
 
-    receivedIndex = int(message[0])
-
-    receivedValues = message[2:]
-    # receivedValues = receivedValues.split(",")
-    receivedValues = receivedValues[2:].split(",")
+    receivedIndex = int(receivedValues[0]) - 1
+    receivedValues = receivedValues[1:]
 
     print("Received: {}, {}\n".format(receivedIndex, receivedValues))
+    print("Length of Factor List: {}".format(factorsByIndex))
 
-    if checkFactors(receivedIndex, factorsByIndex[receivedIndex]):
+    if checkFactors(receivedIndex, receivedValues):
         print("Factors at Index {} are correct.\n".format(receivedIndex))
     else:
         print("Factors at Index {} are incorrect.\n".format(receivedIndex))
@@ -65,6 +63,7 @@ def sendFactors():
     global factorsByIndex
     global valueIndex
     global workingThreads
+
     counter = 0
     upperBound = 10
 
