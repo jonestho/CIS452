@@ -96,6 +96,7 @@ void runServer(int client_sockfd, int ranks) {
             perror("ERROR reading from socket");
             exit(1);
         }
+        std::cout << "Received: " << buffer << std::endl;
         uint64_t* nums = parseMessage(buffer);
         std::cout << "Received: " << nums[0] << " " << nums[1] << std::endl;
 
@@ -157,9 +158,9 @@ int* getPrimeFactors(uint64_t ID, uint64_t number) {
 uint64_t* parseMessage(char* buffer) {
     uint64_t* numbers = (uint64_t*)calloc(sizeof(uint64_t), 2);
     char* token = strtok(buffer, " ");
-    numbers[0] = atoi(token);
+    numbers[0] = std::stoull(token);
     token = strtok(NULL, " ");
-    numbers[1] = atoi(token);
+    numbers[1] = std::stoull(token);
     return numbers;
 }
 

@@ -50,7 +50,7 @@ def receiveFactors():
     print("Length of Factor List: {}".format(factorsByIndex))
 
     if checkFactors(receivedIndex, receivedValues):
-        print("Factors at Index {} are correct.\n".format(receivedIndex))
+        print("Factors at Index {} are correct.\n".format(receivedIndex + 1)) # print with 1 indexing
     else:
         print("Factors at Index {} are incorrect.\n".format(receivedIndex))
 
@@ -67,7 +67,7 @@ def sendFactors():
     counter = 0
     upperBound = 10
 
-    while not interruptReceived and counter < upperBound:
+    while not interruptReceived and counter <= upperBound:
         currentFactors = generateNumbers()
         factorsByIndex.append(currentFactors)
 
@@ -86,7 +86,7 @@ def sendFactors():
         if not interruptReceived:
             valueIndex += 1
             counter += 1
-    clientSocket.send("{}, {}".format(0, 0).encode())
+    clientSocket.send("{}, {}".format(0, 0).encode()) # zero index is what kills server
 
 
 
@@ -123,4 +123,4 @@ if __name__ == '__main__':
             continue
 
         print("Thank you!")
-        # clientSocket.send('-1'.encode())
+        # clientSocket.send('0'.encode())
