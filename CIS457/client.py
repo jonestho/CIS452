@@ -8,7 +8,7 @@ import time
 def signalHandler(sigNum, sigHandler):
     global interruptReceived
     interruptReceived = True
-    exit(0)
+    # exit(0)
 
 
 def generateNumbers():
@@ -39,15 +39,14 @@ def receiveFactors():
     global factorsByIndex
     global workingThreads
 
-
+    time.sleep(1)
+    
     message = clientSocket.recv(1024).decode()
     receivedValues = message.split(",")
 
     receivedIndex = int(receivedValues[0]) - 1
     receivedValues = receivedValues[1:]
-
     print("Received: {}, {}\n".format(receivedIndex, receivedValues))
-    print("Length of Factor List: {}".format(factorsByIndex))
 
     if checkFactors(receivedIndex, receivedValues):
         print("Factors at Index {} are correct.\n".format(receivedIndex + 1)) # print with 1 indexing
@@ -67,7 +66,7 @@ def sendFactors():
     counter = 0
     upperBound = 10
 
-    while not interruptReceived and counter <= upperBound:
+    while not interruptReceived: #and counter <= upperBound:
         currentFactors = generateNumbers()
         factorsByIndex.append(currentFactors)
 
@@ -86,6 +85,8 @@ def sendFactors():
         if not interruptReceived:
             valueIndex += 1
             counter += 1
+
+    print("\nInterrupt received. Shutting down.")
     clientSocket.send("{}, {}".format(0, 0).encode()) # zero index is what kills server
 
 
@@ -116,8 +117,6 @@ if __name__ == '__main__':
         senderThread = threading.Thread(target=sendFactors)
         senderThread.start()
         senderThread.join()
-
-        print("\nInterrupt received. Shutting down.")
 
         while workingThreads != 0:
             continue
